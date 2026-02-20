@@ -69,8 +69,8 @@ def parse_stats(text):
 
         pt = {
             "timestamp": timestamp,
-            "execs_per_sec": int(execs_per_sec),
-            "corpus_count": int(corpus_count),
+            "execs_per_sec": int(float(execs_per_sec)),
+            "corpus_count": int(float(corpus_count)),
         }
         if stability is not None:
             pt["stability"] = stability
