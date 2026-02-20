@@ -125,9 +125,28 @@
     .cov-file-row:hover { background: var(--hover); }
     .hover-link { transition: color 0.1s; }
     .hover-link:hover { color: var(--accent); }
+
+    /* Mobile sidebar */
+    #sidebar-toggle { display: none; }
+    #sidebar-overlay { display: none; }
+    @media (max-width: 768px) {
+      body { overflow-x: hidden; }
+      #sidebar-toggle { display: flex; }
+      aside { position: fixed !important; left: 0; top: 0; bottom: 0; z-index: 40; transform: translateX(-100%); transition: transform 0.2s ease; }
+      aside.open { transform: translateX(0); }
+      #sidebar-overlay { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,0.5); }
+      #sidebar-overlay.open { display: block; }
+      main { padding: 1rem; padding-top: 3.5rem; min-width: 0; width: 100vw; }
+    }
   </style>
 </head>
 <body class="min-h-screen flex">
+
+  <!-- Mobile toggle -->
+  <button id="sidebar-toggle" class="fixed top-3 left-3 z-50 items-center justify-center w-9 h-9 rounded-lg" style="background:var(--bg-surface); border:1px solid var(--border); color:var(--text-secondary);">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div id="sidebar-overlay"></div>
 
   <!-- Sidebar -->
   <aside style="width:280px; background:var(--bg-surface); border-right:1px solid var(--border);" class="flex flex-col h-screen sticky top-0 flex-shrink-0">
@@ -1529,6 +1548,18 @@
       if (h < 24) return `${h}h ${m % 60}m`;
       const d = Math.floor(h / 24);
       return `${d}d ${h % 24}h`;
+    }
+
+    // ── Mobile sidebar toggle ────────────────────────────────────────
+    {
+      const aside = document.querySelector("aside");
+      const toggle = document.getElementById("sidebar-toggle");
+      const overlay = document.getElementById("sidebar-overlay");
+      function openSidebar() { aside.classList.add("open"); overlay.classList.add("open"); }
+      function closeSidebar() { aside.classList.remove("open"); overlay.classList.remove("open"); }
+      toggle.addEventListener("click", () => aside.classList.contains("open") ? closeSidebar() : openSidebar());
+      overlay.addEventListener("click", closeSidebar);
+      aside.addEventListener("click", (e) => { if (e.target.closest(".harness-item")) closeSidebar(); });
     }
 
     // ── Init ──────────────────────────────────────────────────────────
