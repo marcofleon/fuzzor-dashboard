@@ -460,7 +460,7 @@
         for (const s of c.stats) pts.push({ x: new Date(s.timestamp), y: s[field] });
       }
       pts.sort((a, b) => a.x - b.x);
-      return [{ label: field === "execs_per_sec" ? "execs/sec" : "corpus count", data: pts, borderColor: "#3b82f6", backgroundColor: "#3b82f618", fill: true, tension: 0.3, pointRadius: 1.5, borderWidth: 1.5 }];
+      return [{ label: field === "execs_per_sec" ? "execs/sec" : "corpus count", data: pts, borderColor: "#3b82f6", backgroundColor: "#3b82f618", fill: true, tension: 0, pointRadius: 1.5, borderWidth: 1.5 }];
     }
 
     function hasStability(campaigns) {
@@ -476,7 +476,7 @@
       }
       if (!pts.length) return null;
       pts.sort((a, b) => a.x - b.x);
-      return [{ label: "stability", data: pts, borderColor: "#f59e0b", backgroundColor: "#f59e0b18", fill: true, tension: 0.3, pointRadius: 1.5, borderWidth: 1.5 }];
+      return [{ label: "stability", data: pts, borderColor: "#f59e0b", backgroundColor: "#f59e0b18", fill: true, tension: 0, pointRadius: 1.5, borderWidth: 1.5 }];
     }
 
     function makeCovDS(campaigns) {
@@ -488,10 +488,10 @@
       if (!pts.length) return null;
       pts.sort((a, b) => a.t - b.t);
       return [
-        { label: "Lines %",     data: pts.map(p => ({ x: p.t, y: p.tot.lines.percent })),     borderColor: "#3b82f6", backgroundColor: "#3b82f618", tension: 0.3, pointRadius: 4, borderWidth: 2 },
-        { label: "Branches %",  data: pts.map(p => ({ x: p.t, y: p.tot.branches.percent })),  borderColor: "#f59e0b", backgroundColor: "#f59e0b18", tension: 0.3, pointRadius: 4, borderWidth: 2 },
-        { label: "Functions %", data: pts.map(p => ({ x: p.t, y: p.tot.functions.percent })), borderColor: "#10b981", backgroundColor: "#10b98118", tension: 0.3, pointRadius: 4, borderWidth: 2 },
-        { label: "Regions %",   data: pts.map(p => ({ x: p.t, y: p.tot.regions.percent })),   borderColor: "#8b5cf6", backgroundColor: "#8b5cf618", tension: 0.3, pointRadius: 4, borderWidth: 2 },
+        { label: "Lines %",     data: pts.map(p => ({ x: p.t, y: p.tot.lines.percent })),     borderColor: "#3b82f6", backgroundColor: "#3b82f618", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Branches %",  data: pts.map(p => ({ x: p.t, y: p.tot.branches.percent })),  borderColor: "#f59e0b", backgroundColor: "#f59e0b18", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Functions %", data: pts.map(p => ({ x: p.t, y: p.tot.functions.percent })), borderColor: "#10b981", backgroundColor: "#10b98118", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Regions %",   data: pts.map(p => ({ x: p.t, y: p.tot.regions.percent })),   borderColor: "#8b5cf6", backgroundColor: "#8b5cf618", tension: 0, pointRadius: 4, borderWidth: 2 },
       ];
     }
 
@@ -1361,10 +1361,10 @@
       }
 
       const ds = [
-        { label: "Lines %",     data: pts.map(p => ({ x: p.t, y: p.lines })),     borderColor: "#3b82f6", backgroundColor: "#3b82f618", tension: 0.3, pointRadius: 4, borderWidth: 2 },
-        { label: "Branches %",  data: pts.map(p => ({ x: p.t, y: p.branches })),  borderColor: "#f59e0b", backgroundColor: "#f59e0b18", tension: 0.3, pointRadius: 4, borderWidth: 2 },
-        { label: "Functions %", data: pts.map(p => ({ x: p.t, y: p.functions })), borderColor: "#10b981", backgroundColor: "#10b98118", tension: 0.3, pointRadius: 4, borderWidth: 2 },
-        { label: "Regions %",   data: pts.map(p => ({ x: p.t, y: p.regions })),   borderColor: "#8b5cf6", backgroundColor: "#8b5cf618", tension: 0.3, pointRadius: 4, borderWidth: 2 },
+        { label: "Lines %",     data: pts.map(p => ({ x: p.t, y: p.lines })),     borderColor: "#3b82f6", backgroundColor: "#3b82f618", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Branches %",  data: pts.map(p => ({ x: p.t, y: p.branches })),  borderColor: "#f59e0b", backgroundColor: "#f59e0b18", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Functions %", data: pts.map(p => ({ x: p.t, y: p.functions })), borderColor: "#10b981", backgroundColor: "#10b98118", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Regions %",   data: pts.map(p => ({ x: p.t, y: p.regions })),   borderColor: "#8b5cf6", backgroundColor: "#8b5cf618", tension: 0, pointRadius: 4, borderWidth: 2 },
       ];
       createLineChart("chart-file-cov", ds, "coverage %");
       detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -1477,12 +1477,12 @@
       if (c.stats.length > 0) {
         const execData = c.stats.map(s => ({ x: new Date(s.timestamp), y: s.execs_per_sec }));
         const corpusData = c.stats.map(s => ({ x: new Date(s.timestamp), y: s.corpus_count }));
-        createLineChart("chart-c-exec", [{ label: "execs/sec", data: execData, borderColor: "#3b82f6", backgroundColor: "#3b82f618", fill: true, tension: 0.3, pointRadius: 3, borderWidth: 1.5 }], "execs/sec");
-        createLineChart("chart-c-corpus", [{ label: "corpus count", data: corpusData, borderColor: "#10b981", backgroundColor: "#10b98118", fill: true, tension: 0.3, pointRadius: 3, borderWidth: 1.5 }], "corpus count");
+        createLineChart("chart-c-exec", [{ label: "execs/sec", data: execData, borderColor: "#3b82f6", backgroundColor: "#3b82f618", fill: true, tension: 0, pointRadius: 3, borderWidth: 1.5 }], "execs/sec");
+        createLineChart("chart-c-corpus", [{ label: "corpus count", data: corpusData, borderColor: "#10b981", backgroundColor: "#10b98118", fill: true, tension: 0, pointRadius: 3, borderWidth: 1.5 }], "corpus count");
       }
       if (cHasStability) {
         const stabData = c.stats.filter(s => s.stability != null).map(s => ({ x: new Date(s.timestamp), y: s.stability }));
-        if (stabData.length) createLineChart("chart-c-stability", [{ label: "stability", data: stabData, borderColor: "#f59e0b", backgroundColor: "#f59e0b18", fill: true, tension: 0.3, pointRadius: 3, borderWidth: 1.5 }], "stability");
+        if (stabData.length) createLineChart("chart-c-stability", [{ label: "stability", data: stabData, borderColor: "#f59e0b", backgroundColor: "#f59e0b18", fill: true, tension: 0, pointRadius: 3, borderWidth: 1.5 }], "stability");
       }
 
       // Stats History sortable table
