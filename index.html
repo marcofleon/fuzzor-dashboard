@@ -460,7 +460,8 @@
         for (const s of c.stats) pts.push({ x: new Date(s.timestamp), y: s[field] });
       }
       pts.sort((a, b) => a.x - b.x);
-      return [{ label: field === "execs_per_sec" ? "execs/sec" : "corpus count", data: pts, borderColor: "#3b82f6", backgroundColor: "#3b82f618", fill: true, tension: 0, pointRadius: 1.5, borderWidth: 1.5 }];
+      const color = field === "execs_per_sec" ? "#3b82f6" : "#10b981";
+      return [{ label: field === "execs_per_sec" ? "execs/sec" : "corpus count", data: pts, borderColor: color, backgroundColor: color + "18", fill: true, tension: 0, pointRadius: 1.5, borderWidth: 1.5 }];
     }
 
     function hasStability(campaigns) {
@@ -1128,16 +1129,14 @@
 
       const showStability = withStats.length && hasStability(campaigns);
       if (withStats.length) {
-        html += `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-          <div class="card p-4">
+        html += `<div class="card p-4 mb-4">
             <span class="section-label">Executions / sec</span>
             <div style="height:240px" class="mt-2"><canvas id="chart-exec"></canvas></div>
           </div>
-          <div class="card p-4">
+          <div class="card p-4 mb-4">
             <span class="section-label">Corpus Count</span>
             <div style="height:240px" class="mt-2"><canvas id="chart-corpus"></canvas></div>
-          </div>
-        </div>`;
+          </div>`;
       }
 
       if (showStability) {
@@ -1409,16 +1408,14 @@
         </div>`;
 
       if (c.stats.length > 0) {
-        html += `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-          <div class="card p-4">
+        html += `<div class="card p-4 mb-4">
             <span class="section-label">Executions / sec</span>
             <div style="height:260px" class="mt-2"><canvas id="chart-c-exec"></canvas></div>
           </div>
-          <div class="card p-4">
+          <div class="card p-4 mb-4">
             <span class="section-label">Corpus Count</span>
             <div style="height:260px" class="mt-2"><canvas id="chart-c-corpus"></canvas></div>
-          </div>
-        </div>`;
+          </div>`;
       }
 
       if (cHasStability) {
