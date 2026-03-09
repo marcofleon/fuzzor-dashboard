@@ -2,7 +2,7 @@ name: Scrape and deploy
 
 on:
   schedule:
-    - cron: '0 * * * *'  # every hour
+    - cron: '*/15 * * * *'  # every 15 min
   push:
     branches: [master]
   workflow_dispatch:
