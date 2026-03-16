@@ -255,8 +255,8 @@ def main():
         help="Only scrape these projects (default: all discovered projects)",
     )
     parser.add_argument(
-        "-w", "--workers", type=int, default=32,
-        help="Number of parallel fetch threads (default: 32)",
+        "-w", "--workers", type=int, default=4,
+        help="Number of parallel fetch threads (default: 4)",
     )
     args = parser.parse_args()
 
