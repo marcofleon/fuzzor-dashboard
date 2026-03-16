@@ -18,6 +18,8 @@ from urllib.request import urlopen
 from urllib.error import URLError
 
 ONE_DAY_SECONDS = 86400
+FETCH_TIMEOUT = 10
+FETCH_RETRIES = 3
 
 
 class LinkParser(HTMLParser):
@@ -35,9 +37,28 @@ class LinkParser(HTMLParser):
 
 
 def fetch(url):
-    """Fetch URL and return response body as string."""
-    with urlopen(url) as resp:
-        return resp.read().decode("utf-8")
+    """Fetch URL and return response body as string.
+
+    Retries on timeouts and connection errors but not on HTTP error responses
+    (e.g. 404) which indicate the resource genuinely doesn't exist.
+    """
+    for attempt in range(FETCH_RETRIES):
+        try:
+            with urlopen(url, timeout=FETCH_TIMEOUT) as resp:
+                return resp.read().decode("utf-8")
+        except URLError as exc:
+            # If the server responded with an HTTP error, don't retry.
+            if hasattr(exc, "code"):
+                print(f"  HTTP {exc.code} for {url}", file=sys.stderr)
+                raise
+            # Connection/timeout error — retry if attempts remain.
+            if attempt < FETCH_RETRIES - 1:
+                print(f"  Retry {attempt + 1}/{FETCH_RETRIES} for {url}: "
+                      f"{exc.reason}", file=sys.stderr)
+                continue
+            print(f"  Failed after {FETCH_RETRIES} attempts for {url}: "
+                  f"{exc.reason}", file=sys.stderr)
+            raise
 
 
 def list_dir(url):
