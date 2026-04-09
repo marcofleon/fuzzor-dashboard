@@ -1,0 +1,9 @@
+[build]
+  command = "python scrape.py http://bitcoind-fuzz.dergoegge.de:8000/ -p bitcoin && mkdir -p publish && cp data.json index.html publish/ && cp -r data publish/"
+  publish = "publish"
+
+[context.production]
+  command = "echo 'Production deploy disabled' && mkdir -p publish && echo 'Deploy previews only' > publish/index.html"
+
+[context.deploy-preview]
+  command = "python scrape.py http://bitcoind-fuzz.dergoegge.de:8000/ -p bitcoin && mkdir -p publish && cp data.json index.html publish/ && cp -r data publish/"
