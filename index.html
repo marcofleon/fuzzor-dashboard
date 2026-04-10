@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fuzzor Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+  <style>
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+    }
+
+    [data-theme="dark"] {
+      --bg-base: #09090b;
+      --bg-surface: #0f0f12;
+      --bg-elevated: #16161a;
+      --bg-overlay: #1c1c21;
+      --bg-input: #111114;
+      --border: #1e1e23;
+      --border-subtle: #26262c;
+      --text-primary: #e4e4e8;
+      --text-secondary: #85858f;
+      --text-tertiary: #55555f;
+      --text-muted: #35353d;
+      --accent: #3b82f6;
+      --accent-dim: rgba(59,130,246,0.10);
+      --accent-hover: rgba(59,130,246,0.06);
+      --hover: rgba(255,255,255,0.025);
+      --active-bg: rgba(59,130,246,0.08);
+      --active-border: #3b82f6;
+      --green: #22c55e;
+      --green-dim: rgba(34,197,94,0.10);
+      --yellow: #eab308;
+      --yellow-dim: rgba(234,179,8,0.10);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59,130,246,0.10);
+      --red: #ef4444;
+      --chart-grid: #141418;
+      --chart-tooltip-bg: #16161a;
+      --chart-tooltip-border: #1e1e23;
+      --chart-tick: #55555f;
+      --chart-legend: #85858f;
+      --scrollbar-track: #0f0f12;
+      --scrollbar-thumb: #2a2a30;
+    }
+
+    [data-theme="light"] {
+      --bg-base: #f4f4f6;
+      --bg-surface: #ffffff;
+      --bg-elevated: #ffffff;
+      --bg-overlay: #f0f0f3;
+      --bg-input: #f4f4f6;
+      --border: #e2e2e7;
+      --border-subtle: #ebebef;
+      --text-primary: #18181b;
+      --text-secondary: #6e6e78;
+      --text-tertiary: #a0a0aa;
+      --text-muted: #ccccdd;
+      --accent: #2563eb;
+      --accent-dim: rgba(37,99,235,0.07);
+      --accent-hover: rgba(37,99,235,0.04);
+      --hover: rgba(0,0,0,0.025);
+      --active-bg: rgba(37,99,235,0.06);
+      --active-border: #2563eb;
+      --green: #16a34a;
+      --green-dim: rgba(22,163,74,0.08);
+      --yellow: #ca8a04;
+      --yellow-dim: rgba(202,138,4,0.08);
+      --blue: #2563eb;
+      --blue-dim: rgba(37,99,235,0.08);
+      --red: #dc2626;
+      --chart-grid: #ebebef;
+      --chart-tooltip-bg: #ffffff;
+      --chart-tooltip-border: #e2e2e7;
+      --chart-tick: #a0a0aa;
+      --chart-legend: #6e6e78;
+      --scrollbar-track: #f0f0f3;
+      --scrollbar-thumb: #ccccdd;
+    }
+
+    * { font-family: var(--font-sans); }
+    code, .mono { font-family: var(--font-mono); }
+    body { background: var(--bg-base); color: var(--text-primary); }
+
+    .harness-item { transition: background 0.1s; }
+    .harness-item:hover { background: var(--hover); }
+    .harness-item.active { background: var(--active-bg); border-left-color: var(--active-border); }
+    .project-tab.active { background: var(--accent); color: #fff; }
+    .coverage-bar-bg { background: var(--bg-overlay); }
+    .coverage-bar-fill { transition: width 0.5s ease; }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .status-running { animation: pulse-dot 2s ease-in-out infinite; }
+
+    /* Shared component styles */
+    .card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; }
+    .input { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary); border-radius: 6px; }
+    .input::placeholder { color: var(--text-tertiary); }
+    .input:focus { outline: none; border-color: var(--accent); }
+    .pill { border-radius: 4px; font-size: 11px; padding: 2px 8px; border: 1px solid var(--border); background: var(--bg-overlay); color: var(--text-secondary); cursor: pointer; transition: all 0.1s; }
+    .pill:hover { border-color: var(--text-tertiary); }
+    .pill.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+    .section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-tertiary); }
+    .btn-sm { padding: 3px 10px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-overlay); color: var(--text-secondary); cursor: pointer; transition: all 0.1s; }
+    .btn-sm:hover { border-color: var(--text-tertiary); }
+    .btn-sm.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    table th { font-weight: 500; }
+
+    .theme-toggle { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 5px 7px; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; display: flex; align-items: center; }
+    .theme-toggle:hover { border-color: var(--text-tertiary); color: var(--text-primary); }
+
+    .campaign-row { transition: background 0.1s; }
+    .campaign-row:hover { background: var(--hover); }
+    .cov-file-row { transition: background 0.1s; }
+    .cov-file-row:hover { background: var(--hover); }
+    .hover-link { transition: color 0.1s; }
+    .hover-link:hover { color: var(--accent); }
+
+    /* Mobile sidebar */
+    #sidebar-toggle { display: none; }
+    #sidebar-overlay { display: none; }
+    @media (max-width: 768px) {
+      body { overflow-x: hidden; }
+      #sidebar-toggle { display: flex; }
+      aside { position: fixed !important; left: 0; top: 0; bottom: 0; z-index: 40; transform: translateX(-100%); transition: transform 0.2s ease; }
+      aside.open { transform: translateX(0); }
+      #sidebar-overlay { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,0.5); }
+      #sidebar-overlay.open { display: block; }
+      main { padding: 1rem; padding-top: 3.5rem; min-width: 0; width: 100vw; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex">
+
+  <!-- Mobile toggle -->
+  <button id="sidebar-toggle" class="fixed top-3 left-3 z-50 items-center justify-center w-9 h-9 rounded-lg" style="background:var(--bg-surface); border:1px solid var(--border); color:var(--text-secondary);">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <div id="sidebar-overlay"></div>
+
+  <!-- Sidebar -->
+  <aside style="width:280px; background:var(--bg-surface); border-right:1px solid var(--border);" class="flex flex-col h-screen sticky top-0 flex-shrink-0">
+    <div style="border-bottom:1px solid var(--border);" class="p-4 cursor-pointer flex items-center justify-between" id="sidebar-title">
+      <div>
+        <h1 class="text-sm font-semibold" style="color:var(--text-primary);">Fuzzor</h1>
+        <p class="text-[11px] mt-0.5" style="color:var(--text-tertiary);" id="subtitle">Campaign Explorer</p>
+      </div>
+      <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+        <svg id="theme-icon-dark" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="theme-icon-light" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+
+    <!-- Project selector -->
+    <div id="project-tabs" style="border-bottom:1px solid var(--border);" class="p-3 flex flex-wrap gap-1.5"></div>
+
+    <div class="p-3 pb-1">
+      <input id="search" type="text" placeholder="Search harnesses..."
+        class="input w-full px-2.5 py-1.5 text-xs">
+    </div>
+    <div class="px-3 py-1.5 flex flex-wrap gap-1" id="filter-bar"></div>
+    <div class="px-3 pb-2 flex items-center gap-1.5">
+      <span class="section-label">Sort</span>
+      <select id="sort-select" class="input flex-1 px-1.5 py-0.5 text-[11px]">
+        <option value="name">Name</option>
+        <option value="campaigns">Campaign count</option>
+        <option value="running">Running count</option>
+        <option value="completed">Completed count</option>
+        <option value="stopped">Stopped count</option>
+      </select>
+    </div>
+    <div id="harness-list" class="flex-1 overflow-y-auto min-h-0">
+      <div class="p-4 text-xs" style="color:var(--text-tertiary);">Loading...</div>
+    </div>
+    <div class="p-3 text-[11px]" style="border-top:1px solid var(--border); color:var(--text-tertiary);">
+      <span id="harness-count">0</span> harnesses &middot; scraped <span id="scraped-at">-</span>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="flex-1 p-6 overflow-y-auto min-h-screen" style="background:var(--bg-base);">
+    <div id="placeholder" class="flex items-center justify-center h-full">
+      <div class="text-center" style="color:var(--text-tertiary);">
+        <svg class="mx-auto mb-4 w-12 h-12" style="color:var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        <p class="text-sm">Select a harness to view campaigns</p>
+      </div>
+    </div>
+    <div id="content" class="hidden"></div>
+  </main>
+
+  <script>
+    // ── Theme ──────────────────────────────────────────────────────────
+    function getTheme() { return localStorage.getItem("fuzzor-theme") || "dark"; }
+    function setTheme(t) {
+      document.documentElement.setAttribute("data-theme", t);
+      localStorage.setItem("fuzzor-theme", t);
+      document.getElementById("theme-icon-dark").style.display = t === "dark" ? "" : "none";
+      document.getElementById("theme-icon-light").style.display = t === "light" ? "" : "none";
+    }
+    setTheme(getTheme());
+    document.getElementById("theme-toggle").addEventListener("click", (e) => {
+      e.stopPropagation();
+      setTheme(getTheme() === "dark" ? "light" : "dark");
+      updateChartTheme();
+    });
+
+    function updateChartTheme() {
+      const t = tc();
+      for (const ch of charts) {
+        if (ch.options.scales?.x) {
+          ch.options.scales.x.grid.color = t.grid;
+          ch.options.scales.x.ticks.color = t.tick;
+        }
+        if (ch.options.scales?.y) {
+          ch.options.scales.y.grid.color = t.grid;
+          ch.options.scales.y.ticks.color = t.tick;
+          if (ch.options.scales.y.title) ch.options.scales.y.title.color = t.tick;
+        }
+        if (ch.options.plugins?.legend?.labels) ch.options.plugins.legend.labels.color = t.legend;
+        if (ch.options.plugins?.tooltip) {
+          ch.options.plugins.tooltip.backgroundColor = t.tooltipBg;
+          ch.options.plugins.tooltip.titleColor = t.text;
+          ch.options.plugins.tooltip.bodyColor = t.textSec;
+          ch.options.plugins.tooltip.borderColor = t.tooltipBorder;
+        }
+        ch.update("none");
+      }
+    }
+
+    function tc() {
+      const s = getComputedStyle(document.documentElement);
+      return {
+        grid: s.getPropertyValue("--chart-grid").trim(),
+        tick: s.getPropertyValue("--chart-tick").trim(),
+        legend: s.getPropertyValue("--chart-legend").trim(),
+        tooltipBg: s.getPropertyValue("--chart-tooltip-bg").trim(),
+        tooltipBorder: s.getPropertyValue("--chart-tooltip-border").trim(),
+        text: s.getPropertyValue("--text-primary").trim(),
+        textSec: s.getPropertyValue("--text-secondary").trim(),
+      };
+    }
+
+    // ── State ──────────────────────────────────────────────────────────
+    let projects = {};
+    let scrapedAt = null;
+    let selectedProject = null;
+    let activeItem = null;
+    let charts = [];
+    let sidebarFilter = "all";
+    let sidebarSort = "name";
+    let currentView = { type: "summary" }; // { type:"summary" } | { type:"harness", name } | { type:"campaign", harness, id }
+    let harnessDetailCache = {};
+    let renderGeneration = 0;
+
+    function destroyCharts() { for (const c of charts) c.destroy(); charts = []; }
+
+    // ── URL state ─────────────────────────────────────────────────────
+    function stateToHash() {
+      const p = new URLSearchParams();
+      if (selectedProject) p.set("project", selectedProject);
+      if (sidebarFilter !== "all") p.set("filter", sidebarFilter);
+      if (sidebarSort !== "name") p.set("sort", sidebarSort);
+      if (currentView.type === "harness") p.set("harness", currentView.name);
+      if (currentView.type === "campaign") { p.set("harness", currentView.harness); p.set("campaign", currentView.id); }
+      const s = p.toString();
+      return s ? "#" + s : "";
+    }
+
+    function pushURL() {
+      const hash = stateToHash();
+      if (window.location.hash !== hash && ("#" + window.location.hash.slice(1)) !== hash) {
+        history.pushState(null, "", hash || window.location.pathname);
+      }
+    }
+
+    function replaceURL() {
+      const hash = stateToHash();
+      history.replaceState(null, "", hash || window.location.pathname);
+    }
+
+    function readHash() {
+      const raw = window.location.hash.slice(1);
+      if (!raw) return {};
+      const p = new URLSearchParams(raw);
+      return Object.fromEntries(p.entries());
+    }
+
+    function navigateFromHash() {
+      const h = readHash();
+      selectedProject = h.project || null;
+      sidebarFilter = h.filter || "all";
+      sidebarSort = h.sort || "name";
+
+      renderProjectTabs();
+      renderSidebar();
+
+      if (h.campaign && h.harness) {
+        currentView = { type: "campaign", harness: h.harness, id: h.campaign };
+        highlightSidebarItem(h.harness);
+        document.getElementById("placeholder").classList.add("hidden");
+        document.getElementById("content").classList.remove("hidden");
+        renderCampaign(h.harness, h.campaign);
+      } else if (h.harness) {
+        currentView = { type: "harness", name: h.harness };
+        highlightSidebarItem(h.harness);
+        document.getElementById("placeholder").classList.add("hidden");
+        document.getElementById("content").classList.remove("hidden");
+        renderHarness(h.harness);
+      } else {
+        currentView = { type: "summary" };
+        renderSummary();
+      }
+    }
+
+    function highlightSidebarItem(name) {
+      if (activeItem) activeItem.classList.remove("active");
+      activeItem = null;
+      for (const item of document.getElementById("harness-list").children) {
+        if (item.dataset.name === name) {
+          item.classList.add("active");
+          activeItem = item;
+          item.scrollIntoView({ block: "nearest" });
+          break;
+        }
+      }
+    }
+
+    // ── Helpers / constants ───────────────────────────────────────────
+    const CAMPAIGN_COLORS = [
+      "#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6",
+      "#ec4899","#14b8a6","#f97316","#6366f1","#84cc16",
+    ];
+    const STATUS_CFG = {
+      running:   { label:"Running",   dot:"status-running" },
+      stopped:   { label:"Stopped",   dot:"" },
+      completed: { label:"Completed", dot:"" },
+    };
+    const STATUS_COLORS = { running: "var(--green)", stopped: "var(--yellow)", completed: "var(--blue)" };
+    const STATUS_DIM = { running: "var(--green-dim)", stopped: "var(--yellow-dim)", completed: "var(--blue-dim)" };
+
+    function statusBadge(s) {
+      const cfg = STATUS_CFG[s] || STATUS_CFG.stopped;
+      const col = STATUS_COLORS[s] || STATUS_COLORS.stopped;
+      const dim = STATUS_DIM[s] || STATUS_DIM.stopped;
+      return `<span class="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded" style="background:${dim};color:${col};"><span class="w-1.5 h-1.5 rounded-full ${cfg.dot}" style="background:${col};"></span>${cfg.label}</span>`;
+    }
+    function statusDot(s) {
+      const cfg = STATUS_CFG[s] || STATUS_CFG.stopped;
+      const col = STATUS_COLORS[s] || STATUS_COLORS.stopped;
+      return `<span class="w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.dot}" style="background:${col};" title="${(STATUS_CFG[s]||STATUS_CFG.stopped).label}"></span>`;
+    }
+    function shortenPath(p) { return p.replace(/^\/workdir\/[^/]+\//, ""); }
+    function covColor(pct) { return pct > 50 ? "var(--green)" : pct > 20 ? "var(--yellow)" : "var(--red)"; }
+
+    function statCard(label, value, sub) {
+      return `<div class="card p-3">
+        <div class="section-label">${label}</div>
+        <div class="text-base font-semibold mt-1" style="color:var(--text-primary);">${value}</div>
+        ${sub ? `<div class="text-[11px] mt-0.5" style="color:var(--text-tertiary);">${sub}</div>` : ""}
+      </div>`;
+    }
+    function coverageBar(label, cov) {
+      const pct = cov.percent.toFixed(1);
+      const col = covColor(cov.percent);
+      return `<div class="flex items-center gap-3">
+        <span class="text-[11px] w-20" style="color:var(--text-tertiary);">${label}</span>
+        <div class="flex-1 coverage-bar-bg rounded h-1.5">
+          <div class="coverage-bar-fill h-1.5 rounded" style="width:${Math.max(pct,0.5)}%;background:${col};"></div>
+        </div>
+        <span class="mono text-[11px] w-28 text-right" style="color:${col};">${pct}% <span style="color:var(--text-tertiary);">(${cov.covered}/${cov.count})</span></span>
+      </div>`;
+    }
+
+    // ── Data access helpers ───────────────────────────────────────────
+    function getHarnesses() {
+      if (selectedProject && projects[selectedProject]) {
+        return projects[selectedProject].harnesses;
+      }
+      const names = Object.keys(projects);
+      if (names.length === 1) return projects[names[0]].harnesses;
+      const merged = {};
+      for (const [pname, pdata] of Object.entries(projects)) {
+        for (const [hname, hdata] of Object.entries(pdata.harnesses)) {
+          merged[`${pname}/${hname}`] = hdata;
+        }
+      }
+      return merged;
+    }
+
+    function resolveHarness(displayName) {
+      if (displayName.includes("/")) {
+        const idx = displayName.indexOf("/");
+        return { project: displayName.substring(0, idx), harness: displayName.substring(idx + 1) };
+      }
+      if (selectedProject) return { project: selectedProject, harness: displayName };
+      const pnames = Object.keys(projects);
+      if (pnames.length === 1) return { project: pnames[0], harness: displayName };
+      for (const [pname, pdata] of Object.entries(projects)) {
+        if (displayName in pdata.harnesses) return { project: pname, harness: displayName };
+      }
+      return null;
+    }
+
+    async function loadHarnessDetail(displayName) {
+      if (harnessDetailCache[displayName]) return harnessDetailCache[displayName];
+      const resolved = resolveHarness(displayName);
+      if (!resolved) throw new Error(`Cannot resolve harness: ${displayName}`);
+      const url = `data/${encodeURIComponent(resolved.project)}/${encodeURIComponent(resolved.harness)}.json`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Failed to load ${url}: ${resp.status}`);
+      const data = await resp.json();
+      harnessDetailCache[displayName] = data;
+      return data;
+    }
+
+    function getAllCampaigns() {
+      const out = [];
+      for (const h of Object.values(getHarnesses())) {
+        for (const c of h.campaigns) out.push(c);
+      }
+      return out;
+    }
+
+    // ── Chart factories ───────────────────────────────────────────────
+    function createLineChart(id, datasets, yLabel) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const t = tc();
+      const visibleDS = datasets.filter(d => d.label !== "min" && d.label !== "max");
+      const ch = new Chart(el, {
+        type: "line", data: { datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: visibleDS.length > 1, labels: { color: t.legend, font: { size: 10, family: "Inter" }, filter: (item) => item.text !== "min" && item.text !== "max" } },
+            tooltip: {
+              backgroundColor: t.tooltipBg, titleColor: t.text, bodyColor: t.textSec, borderColor: t.tooltipBorder, borderWidth: 1, titleFont: { family: "Inter" }, bodyFont: { family: "Inter" },
+              filter: (item) => item.dataset.label !== "min" && item.dataset.label !== "max",
+              callbacks: {
+                label: function(ctx) {
+                  const ds = ctx.chart.data.datasets;
+                  const idx = ctx.dataIndex;
+                  const label = ctx.dataset.label;
+                  const val = ctx.parsed.y;
+                  const fmt = v => typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : v;
+                  const minDS = ds.find(d => d.label === "min");
+                  const maxDS = ds.find(d => d.label === "max");
+                  if (minDS && maxDS && minDS.data[idx] && maxDS.data[idx]) {
+                    const minVal = minDS.data[idx].y;
+                    const maxVal = maxDS.data[idx].y;
+                    return `${label}: ${fmt(val)}  (min: ${fmt(minVal)}, max: ${fmt(maxVal)})`;
+                  }
+                  return `${label}: ${fmt(val)}`;
+                }
+              },
+            },
+          },
+          scales: {
+            x: { type: "time", time: { tooltipFormat: "yyyy-MM-dd HH:mm:ss" }, grid: { color: t.grid }, ticks: { color: t.tick, font: { size: 10, family: "Inter" }, maxRotation: 0 } },
+            y: { grid: { color: t.grid }, ticks: { color: t.tick, font: { size: 10, family: "Inter" } }, title: { display: true, text: yLabel, color: t.tick, font: { size: 11, family: "Inter" } } },
+          },
+        },
+      });
+      charts.push(ch);
+    }
+
+    function createStackedBar(id, labels, dataByStatus, yLabel) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const t = tc();
+      const cols = { running: { bg:"#22c55e30", bd:"#22c55e" }, completed: { bg:"#3b82f630", bd:"#3b82f6" }, stopped: { bg:"#eab30830", bd:"#eab308" } };
+      const ds = Object.entries(dataByStatus).map(([s, v]) => ({
+        label: STATUS_CFG[s]?.label || s, data: v,
+        backgroundColor: cols[s]?.bg || "#64748b30", borderColor: cols[s]?.bd || "#64748b", borderWidth: 1,
+      }));
+      const ch = new Chart(el, {
+        type: "bar", data: { labels, datasets: ds },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { labels: { color: t.legend, font: { size: 10, family: "Inter" } } },
+            tooltip: { backgroundColor: t.tooltipBg, titleColor: t.text, bodyColor: t.textSec, borderColor: t.tooltipBorder, borderWidth: 1 },
+          },
+          scales: {
+            x: { stacked: true, grid: { color: t.grid }, ticks: { color: t.tick, font: { size: 10, family: "Inter" }, maxRotation: 45 } },
+            y: { stacked: true, grid: { color: t.grid }, ticks: { color: t.tick, font: { size: 10, family: "Inter" }, stepSize: 1 }, title: { display: true, text: yLabel, color: t.tick, font: { size: 11, family: "Inter" } } },
+          },
+        },
+      });
+      charts.push(ch);
+    }
+
+    function makeStatsDS(campaigns, field) {
+      const pts = [];
+      for (const c of campaigns) {
+        if (!c.stats.length) continue;
+        const vals = c.stats.map(s => s[field]);
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const min = Math.min(...vals);
+        const max = Math.max(...vals);
+        const t = new Date(c.stats[c.stats.length - 1].timestamp);
+        pts.push({ x: t, avg, min, max });
+      }
+      pts.sort((a, b) => a.x - b.x);
+      const color = field === "execs_per_sec" ? "#3b82f6" : "#10b981";
+      const label = field === "execs_per_sec" ? "avg execs/sec" : "avg corpus count";
+      return [
+        { label: "min", data: pts.map(p => ({ x: p.x, y: p.min })), borderColor: color + "00", backgroundColor: "transparent", pointRadius: 0, borderWidth: 0, fill: false },
+        { label: "max", data: pts.map(p => ({ x: p.x, y: p.max })), borderColor: color + "00", backgroundColor: color + "15", pointRadius: 0, borderWidth: 0, fill: "-1" },
+        { label, data: pts.map(p => ({ x: p.x, y: p.avg })), borderColor: color, backgroundColor: color + "18", fill: false, tension: 0, pointRadius: 4, borderWidth: 2 },
+      ];
+    }
+
+    function hasStability(campaigns) {
+      return campaigns.some(c => c.stats.some(s => s.stability != null));
+    }
+
+    function makeStabilityDS(campaigns) {
+      const pts = [];
+      for (const c of campaigns) {
+        const vals = c.stats.filter(s => s.stability != null).map(s => s.stability);
+        if (!vals.length || !c.stats.length) continue;
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const min = Math.min(...vals);
+        const max = Math.max(...vals);
+        const t = new Date(c.stats[c.stats.length - 1].timestamp);
+        pts.push({ x: t, avg, min, max });
+      }
+      if (!pts.length) return null;
+      pts.sort((a, b) => a.x - b.x);
+      const color = "#f59e0b";
+      return [
+        { label: "min", data: pts.map(p => ({ x: p.x, y: p.min })), borderColor: color + "00", backgroundColor: "transparent", pointRadius: 0, borderWidth: 0, fill: false },
+        { label: "max", data: pts.map(p => ({ x: p.x, y: p.max })), borderColor: color + "00", backgroundColor: color + "15", pointRadius: 0, borderWidth: 0, fill: "-1" },
+        { label: "avg stability", data: pts.map(p => ({ x: p.x, y: p.avg })), borderColor: color, backgroundColor: color + "18", fill: false, tension: 0, pointRadius: 4, borderWidth: 2 },
+      ];
+    }
+
+    function makeCovDS(campaigns) {
+      const pts = [];
+      for (const c of campaigns) {
+        if (!c.coverage || !c.stats.length) continue;
+        pts.push({ t: new Date(c.stats[c.stats.length - 1].timestamp), tot: c.coverage.totals });
+      }
+      if (!pts.length) return null;
+      pts.sort((a, b) => a.t - b.t);
+      return [
+        { label: "Lines %",     data: pts.map(p => ({ x: p.t, y: p.tot.lines.percent })),     borderColor: "#3b82f6", backgroundColor: "#3b82f618", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Branches %",  data: pts.map(p => ({ x: p.t, y: p.tot.branches.percent })),  borderColor: "#f59e0b", backgroundColor: "#f59e0b18", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Functions %", data: pts.map(p => ({ x: p.t, y: p.tot.functions.percent })), borderColor: "#10b981", backgroundColor: "#10b98118", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Regions %",   data: pts.map(p => ({ x: p.t, y: p.tot.regions.percent })),   borderColor: "#8b5cf6", backgroundColor: "#8b5cf618", tension: 0, pointRadius: 4, borderWidth: 2 },
+      ];
+    }
+
+    function bucketCampaigns(all, mode) {
+      const buckets = {};
+      for (const c of all) {
+        if (!c.first_ts) continue;
+        const d = new Date(c.first_ts);
+        let key;
+        if (mode === "hour") {
+          key = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")} ${String(d.getUTCHours()).padStart(2,"0")}:00`;
+        } else if (mode === "day") {
+          key = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`;
+        } else {
+          const day = d.getUTCDay();
+          const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+          const mon = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), diff));
+          key = `W ${mon.getUTCFullYear()}-${String(mon.getUTCMonth()+1).padStart(2,"0")}-${String(mon.getUTCDate()).padStart(2,"0")}`;
+        }
+        if (!buckets[key]) buckets[key] = [];
+        buckets[key].push(c);
+      }
+      return buckets;
+    }
+
+    // ── Render: project tabs ──────────────────────────────────────────
+    function renderProjectTabs() {
+      const container = document.getElementById("project-tabs");
+      const pnames = Object.keys(projects).sort();
+
+      container.classList.remove("hidden");
+      container.innerHTML = "";
+
+      const allBtn = document.createElement("button");
+      allBtn.textContent = "All";
+      allBtn.className = `project-tab px-2.5 py-1 text-[11px] font-medium rounded ${!selectedProject ? "active" : ""}`;
+      if (!selectedProject) allBtn.style.cssText = `background:var(--accent);color:#fff;`;
+      else allBtn.style.cssText = `background:var(--bg-overlay);color:var(--text-secondary);border:1px solid var(--border);`;
+      allBtn.addEventListener("click", () => { selectedProject = null; onProjectChanged(); });
+      container.appendChild(allBtn);
+
+      for (const p of pnames) {
+        const btn = document.createElement("button");
+        btn.textContent = p;
+        btn.className = `project-tab px-2.5 py-1 text-[11px] font-medium rounded ${selectedProject === p ? "active" : ""}`;
+        if (selectedProject === p) btn.style.cssText = `background:var(--accent);color:#fff;`;
+        else btn.style.cssText = `background:var(--bg-overlay);color:var(--text-secondary);border:1px solid var(--border);`;
+        btn.addEventListener("click", () => { selectedProject = p; onProjectChanged(); });
+        container.appendChild(btn);
+      }
+    }
+
+    function onProjectChanged() {
+      currentView = { type: "summary" };
+      renderProjectTabs();
+      renderSidebar();
+      renderSummary();
+      pushURL();
+    }
+
+    // ── Render: sidebar ───────────────────────────────────────────────
+    function harnessStatusCounts(campaigns) {
+      let running = 0, completed = 0, stopped = 0;
+      for (const c of campaigns) {
+        if (c.status === "running") running++;
+        else if (c.status === "completed") completed++;
+        else stopped++;
+      }
+      return { running, completed, stopped };
+    }
+
+    function matchesFilter(campaigns, filter) {
+      if (filter === "all") return true;
+      if (filter === "no-campaigns") return campaigns.length === 0;
+      return campaigns.some(c => c.status === filter);
+    }
+
+    function sortHarnesses(names, h, sort) {
+      const sc = {};
+      for (const n of names) sc[n] = harnessStatusCounts(h[n].campaigns);
+      return names.slice().sort((a, b) => {
+        if (sort === "name") return a.localeCompare(b);
+        if (sort === "campaigns") return h[b].campaigns.length - h[a].campaigns.length || a.localeCompare(b);
+        return (sc[b][sort] || 0) - (sc[a][sort] || 0) || a.localeCompare(b);
+      });
+    }
+
+    function renderSidebar() {
+      const h = getHarnesses();
+      const allNames = Object.keys(h);
+      document.getElementById("harness-count").textContent = allNames.length;
+      if (scrapedAt) document.getElementById("scraped-at").textContent = new Date(scrapedAt).toLocaleString();
+
+      renderFilterBar(h);
+      renderHarnessList(h, allNames);
+      wireFilterSort(h);
+    }
+
+    function renderFilterBar(h) {
+      const allNames = Object.keys(h);
+      const counts = { all: allNames.length, running: 0, completed: 0, stopped: 0, "no-campaigns": 0 };
+      for (const n of allNames) {
+        const cs = h[n].campaigns;
+        if (cs.length === 0) { counts["no-campaigns"]++; continue; }
+        const seen = new Set();
+        for (const c of cs) seen.add(c.status);
+        if (seen.has("running")) counts.running++;
+        if (seen.has("completed")) counts.completed++;
+        if (seen.has("stopped")) counts.stopped++;
+      }
+
+      const filters = [
+        { key: "all",           label: "All",          count: counts.all },
+        { key: "running",       label: "Running",      count: counts.running },
+        { key: "completed",     label: "Completed",    count: counts.completed },
+        { key: "stopped",       label: "Stopped",      count: counts.stopped },
+        { key: "no-campaigns",  label: "None",         count: counts["no-campaigns"] },
+      ];
+
+      const bar = document.getElementById("filter-bar");
+      bar.innerHTML = "";
+      for (const f of filters) {
+        if (f.count === 0 && f.key !== "all") continue;
+        const btn = document.createElement("button");
+        const active = sidebarFilter === f.key;
+        btn.className = `filter-btn pill ${active ? "active" : ""}`;
+        btn.dataset.filter = f.key;
+        btn.textContent = `${f.label} ${f.count}`;
+        bar.appendChild(btn);
+      }
+    }
+
+    function renderHarnessList(h, allNames) {
+      const listEl = document.getElementById("harness-list");
+      const filtered = allNames.filter(n => matchesFilter(h[n].campaigns, sidebarFilter));
+      const sorted = sortHarnesses(filtered, h, sidebarSort);
+
+      listEl.innerHTML = "";
+      for (const name of sorted) {
+        const campaigns = h[name].campaigns;
+        const sc = harnessStatusCounts(campaigns);
+        const hasRunning = sc.running > 0;
+        const div = document.createElement("div");
+        div.className = "harness-item border-l-2 border-transparent px-4 py-2 cursor-pointer text-xs flex items-center gap-2";
+        div.style.color = "var(--text-secondary)";
+        div.dataset.name = name;
+        div.innerHTML = `${hasRunning ? statusDot("running") : ""}<span class="truncate flex-1">${name}</span><span class="mono text-[10px] flex-shrink-0" style="color:var(--text-tertiary);">${campaigns.length}</span>`;
+        div.addEventListener("click", () => {
+          if (activeItem) activeItem.classList.remove("active");
+          div.classList.add("active");
+          activeItem = div;
+          document.getElementById("placeholder").classList.add("hidden");
+          document.getElementById("content").classList.remove("hidden");
+          currentView = { type: "harness", name };
+          renderHarness(name);
+          pushURL();
+        });
+        listEl.appendChild(div);
+      }
+    }
+
+    function wireFilterSort(h) {
+      const allNames = Object.keys(h);
+
+      const searchEl = document.getElementById("search");
+      searchEl.value = "";
+      searchEl.oninput = () => applySearch();
+
+      wireFilterButtons(h, allNames);
+
+      const sortEl = document.getElementById("sort-select");
+      sortEl.value = sidebarSort;
+      sortEl.onchange = () => {
+        sidebarSort = sortEl.value;
+        renderHarnessList(h, allNames);
+        applySearch();
+        replaceURL();
+      };
+    }
+
+    function wireFilterButtons(h, allNames) {
+      for (const btn of document.querySelectorAll(".filter-btn")) {
+        btn.addEventListener("click", () => {
+          sidebarFilter = btn.dataset.filter;
+          renderFilterBar(h);
+          renderHarnessList(h, allNames);
+          applySearch();
+          wireFilterButtons(h, allNames);
+          replaceURL();
+        });
+      }
+    }
+
+    function applySearch() {
+      const q = document.getElementById("search").value.toLowerCase();
+      const listEl = document.getElementById("harness-list");
+      for (const item of listEl.children)
+        item.style.display = item.dataset.name.toLowerCase().includes(q) ? "" : "none";
+    }
+
+    // ── Render: summary ───────────────────────────────────────────────
+    function renderSummary() {
+      if (activeItem) activeItem.classList.remove("active");
+      activeItem = null;
+      destroyCharts();
+      const content = document.getElementById("content");
+      content.classList.remove("hidden");
+      document.getElementById("placeholder").classList.add("hidden");
+
+      const h = getHarnesses();
+      const harnessNames = Object.keys(h).sort();
+      const allC = getAllCampaigns();
+      const nR = allC.filter(c => c.status === "running").length;
+      const nCo = allC.filter(c => c.status === "completed").length;
+      const nS = allC.filter(c => c.status === "stopped").length;
+      const projectLabel = selectedProject || "All Projects";
+
+      let html = `
+        <h2 class="text-lg font-semibold mb-0.5" style="color:var(--text-primary);">${projectLabel}</h2>
+        <p class="text-xs mb-5" style="color:var(--text-tertiary);">${harnessNames.length} harnesses, ${allC.length} total campaigns</p>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+          ${statCard("Total Campaigns", allC.length.toString())}
+          ${statCard("Harnesses", harnessNames.length.toString())}
+          ${statCard("Running", nR.toString())}
+          ${statCard("Completed", nCo.toString())}
+          ${statCard("Stopped", nS.toString())}
+        </div>
+
+        <div class="card p-4 mb-6">
+          <div class="flex items-center justify-between mb-3">
+            <span class="section-label">Campaigns Over Time</span>
+            <div class="flex gap-1">
+              <button data-period="hour" class="period-btn btn-sm">Hour</button>
+              <button data-period="day" class="period-btn btn-sm active">Day</button>
+              <button data-period="week" class="period-btn btn-sm">Week</button>
+            </div>
+          </div>
+          <div style="height:280px"><canvas id="chart-summary-timeline"></canvas></div>
+        </div>`;
+
+      // Per-project breakdown if showing all
+      if (!selectedProject && Object.keys(projects).length > 1) {
+        html += `
+          <div class="card p-5 mb-6">
+            <span class="section-label">Projects</span>
+            <div class="overflow-x-auto mt-3"><table class="w-full text-xs">
+              <thead><tr style="color:var(--text-tertiary); border-bottom:1px solid var(--border);">
+                <th class="text-left py-2 pr-4 font-medium">Project</th>
+                <th class="text-right py-2 px-2 font-medium">Harnesses</th>
+                <th class="text-right py-2 px-2 font-medium">Campaigns</th>
+                <th class="text-right py-2 px-2 font-medium">Running</th>
+                <th class="text-right py-2 px-2 font-medium">Completed</th>
+                <th class="text-right py-2 px-2 font-medium">Stopped</th>
+              </tr></thead><tbody>
+                ${Object.keys(projects).sort().map(pn => {
+                  const ph = projects[pn].harnesses;
+                  const pc = Object.values(ph).flatMap(h2 => h2.campaigns);
+                  const pr = pc.filter(c => c.status === "running").length;
+                  const pco = pc.filter(c => c.status === "completed").length;
+                  const ps = pc.filter(c => c.status === "stopped").length;
+                  return `<tr style="border-bottom:1px solid var(--border-subtle);">
+                    <td class="py-1.5 pr-4 font-medium" style="color:var(--text-primary);">${pn}</td>
+                    <td class="text-right py-1.5 px-2" style="color:var(--text-secondary);">${Object.keys(ph).length}</td>
+                    <td class="text-right py-1.5 px-2" style="color:var(--text-secondary);">${pc.length}</td>
+                    <td class="text-right py-1.5 px-2" style="color:${pr ? "var(--green)" : "var(--text-muted)"};">${pr}</td>
+                    <td class="text-right py-1.5 px-2" style="color:${pco ? "var(--blue)" : "var(--text-muted)"};">${pco}</td>
+                    <td class="text-right py-1.5 px-2" style="color:${ps ? "var(--yellow)" : "var(--text-muted)"};">${ps}</td>
+                  </tr>`;
+                }).join("")}
+              </tbody></table></div>
+          </div>`;
+      }
+
+      // All campaigns list
+      {
+        const allCWithHarness = [];
+        for (const [hname, hdata] of Object.entries(h)) {
+          for (const c of hdata.campaigns) {
+            allCWithHarness.push({ harness: hname, campaign: c, lastTs: c.last_ts || "", firstTs: c.first_ts || "" });
+          }
+        }
+        // Sort newest first by last timestamp
+        allCWithHarness.sort((a, b) => b.lastTs.localeCompare(a.lastTs));
+
+        html += `
+          <div class="card p-5 mb-6">
+            <span class="section-label">All Campaigns</span>
+            <div class="flex flex-wrap items-center gap-2 mt-3 mb-3">
+              <input id="ac-search" type="text" placeholder="Filter campaigns..."
+                class="input px-2.5 py-1 text-xs w-48">
+              <div id="ac-filters" class="flex flex-wrap gap-1"></div>
+            </div>
+            <div class="overflow-auto" style="max-height:480px;"><table class="w-full text-xs">
+              <thead class="sticky top-0" style="background:var(--bg-elevated);">
+                <tr style="color:var(--text-tertiary); border-bottom:1px solid var(--border);">
+                  <th class="text-left py-2 pr-2 font-medium" style="width:20px;"></th>
+                  <th class="text-left py-2 pr-4 font-medium cursor-pointer select-none ac-sort" data-col="harness">Harness <span class="ac-arrow"></span></th>
+                  <th class="text-left py-2 px-2 font-medium cursor-pointer select-none ac-sort" data-col="id">Campaign <span class="ac-arrow"></span></th>
+                  <th class="text-left py-2 px-2 font-medium cursor-pointer select-none ac-sort" data-col="status">Status <span class="ac-arrow"></span></th>
+                  <th class="text-right py-2 px-2 font-medium">&Delta; Lines/Branches/Functions/Regions</th>
+                  <th class="text-right py-2 px-2 font-medium cursor-pointer select-none ac-sort" data-col="lastTs">Last Active <span class="ac-arrow"></span></th>
+                </tr>
+              </thead><tbody id="ac-tbody"></tbody>
+            </table></div>
+          </div>`;
+      }
+
+      // Harness status table
+      html += `
+        <div class="card p-5">
+          <span class="section-label">Harness Status Overview</span>
+          <div class="flex flex-wrap items-center gap-2 mt-3 mb-3">
+            <input id="hso-search" type="text" placeholder="Filter harnesses..."
+              class="input px-2.5 py-1 text-xs w-48">
+            <div id="hso-filters" class="flex flex-wrap gap-1"></div>
+          </div>
+          <div class="overflow-x-auto" style="max-height:400px; overflow-y:auto;"><table class="w-full text-xs">
+            <thead style="position:sticky; top:0; z-index:1; background:var(--bg-surface);"><tr style="color:var(--text-tertiary); border-bottom:1px solid var(--border);">
+              <th class="text-left py-2 pr-4 font-medium cursor-pointer select-none hso-sort" data-col="name">Harness <span class="hso-arrow"></span></th>
+              <th class="text-right py-2 px-2 font-medium cursor-pointer select-none hso-sort" data-col="campaigns">Total <span class="hso-arrow"></span></th>
+              <th class="text-right py-2 px-2 font-medium cursor-pointer select-none hso-sort" data-col="running">Running <span class="hso-arrow"></span></th>
+              <th class="text-right py-2 px-2 font-medium cursor-pointer select-none hso-sort" data-col="completed">Completed <span class="hso-arrow"></span></th>
+              <th class="text-right py-2 px-2 font-medium cursor-pointer select-none hso-sort" data-col="stopped">Stopped <span class="hso-arrow"></span></th>
+              <th class="text-right py-2 px-2 font-medium cursor-pointer select-none hso-sort" data-col="avgExecs">Avg Execs/s <span class="hso-arrow"></span></th>
+              <th class="text-right py-2 px-2 font-medium cursor-pointer select-none hso-sort" data-col="avgStability">Avg Stability <span class="hso-arrow"></span></th>
+              <th class="text-right py-2 px-2 font-medium cursor-pointer select-none hso-sort" data-col="lastCompleted">Last Completed <span class="hso-arrow"></span></th>
+            </tr></thead><tbody id="hso-tbody"></tbody></table></div>
+        </div>`;
+
+      content.innerHTML = html;
+
+      // Timeline chart with period switcher
+      let curPeriod = "day";
+      function last24Labels(period) {
+        const now = new Date();
+        const labels = [];
+        for (let i = 23; i >= 0; i--) {
+          const d = new Date(now);
+          if (period === "hour") {
+            d.setUTCHours(d.getUTCHours() - i);
+            labels.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")} ${String(d.getUTCHours()).padStart(2,"0")}:00`);
+          } else if (period === "day") {
+            d.setUTCDate(d.getUTCDate() - i);
+            labels.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-${String(d.getUTCDate()).padStart(2,"0")}`);
+          } else {
+            d.setUTCDate(d.getUTCDate() - i * 7);
+            const day = d.getUTCDay();
+            const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1);
+            const mon = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), diff));
+            labels.push(`W ${mon.getUTCFullYear()}-${String(mon.getUTCMonth()+1).padStart(2,"0")}-${String(mon.getUTCDate()).padStart(2,"0")}`);
+          }
+        }
+        return labels;
+      }
+      function drawTimeline(period) {
+        const idx = charts.findIndex(c => c.canvas?.id === "chart-summary-timeline");
+        if (idx !== -1) { charts[idx].destroy(); charts.splice(idx, 1); }
+        const bk = bucketCampaigns(allC, period);
+        const labels = last24Labels(period);
+        const dbs = { running: [], completed: [], stopped: [] };
+        for (const l of labels) { const b = bk[l] || []; dbs.running.push(b.filter(c=>c.status==="running").length); dbs.completed.push(b.filter(c=>c.status==="completed").length); dbs.stopped.push(b.filter(c=>c.status==="stopped").length); }
+        createStackedBar("chart-summary-timeline", labels, dbs, "campaigns");
+      }
+      drawTimeline(curPeriod);
+      for (const btn of document.querySelectorAll(".period-btn")) {
+        btn.addEventListener("click", () => {
+          curPeriod = btn.dataset.period;
+          for (const b of document.querySelectorAll(".period-btn")) { b.classList.remove("active"); }
+          btn.classList.add("active");
+          drawTimeline(curPeriod);
+        });
+      }
+
+      // ── Harness Status Overview: interactive table ──────────────────
+      {
+        let hsoFilter = "all";
+        let hsoSort = "name";
+        let hsoDesc = false;
+
+        const rows = harnessNames.map(n => {
+          const cs = h[n].campaigns;
+          const r = cs.filter(c => c.status === "running").length;
+          const co = cs.filter(c => c.status === "completed").length;
+          const s = cs.filter(c => c.status === "stopped").length;
+          let lastCompleted = "";
+          for (const c of cs) {
+            if (c.status === "completed" && c.last_ts) {
+              if (c.last_ts > lastCompleted) lastCompleted = c.last_ts;
+            }
+          }
+          const execVals = cs.map(c => c.avg_execs_per_sec).filter(v => v != null);
+          const avgExecs = execVals.length ? execVals.reduce((a, b) => a + b, 0) / execVals.length : null;
+          const stabVals = cs.map(c => c.avg_stability).filter(v => v != null);
+          const avgStability = stabVals.length ? stabVals.reduce((a, b) => a + b, 0) / stabVals.length : null;
+          return { name: n, campaigns: cs.length, running: r, completed: co, stopped: s, avgExecs, avgStability, lastCompleted };
+        });
+
+        function hsoRender() {
+          const q = (document.getElementById("hso-search")?.value || "").toLowerCase();
+          let filtered = rows;
+          if (hsoFilter !== "all") {
+            if (hsoFilter === "no-campaigns") filtered = filtered.filter(r => r.campaigns === 0);
+            else filtered = filtered.filter(r => r[hsoFilter] > 0);
+          }
+          if (q) filtered = filtered.filter(r => r.name.toLowerCase().includes(q));
+
+          const sorted = filtered.slice().sort((a, b) => {
+            let cmp;
+            if (hsoSort === "name") cmp = a.name.localeCompare(b.name);
+            else if (hsoSort === "lastCompleted") cmp = a.lastCompleted.localeCompare(b.lastCompleted);
+            else if (hsoSort === "avgExecs" || hsoSort === "avgStability") {
+              const av = a[hsoSort] ?? -Infinity, bv = b[hsoSort] ?? -Infinity;
+              cmp = av - bv;
+            } else cmp = a[hsoSort] - b[hsoSort];
+            if (cmp === 0) cmp = a.name.localeCompare(b.name);
+            return hsoDesc ? -cmp : cmp;
+          });
+
+          const tbody = document.getElementById("hso-tbody");
+          tbody.innerHTML = sorted.map(r => {
+            const lcDisplay = r.lastCompleted ? new Date(r.lastCompleted).toLocaleString() : "-";
+            const execDisplay = r.avgExecs != null ? Math.round(r.avgExecs).toLocaleString() : "-";
+            const stabDisplay = r.avgStability != null ? r.avgStability.toFixed(2) : "-";
+            return `<tr style="border-bottom:1px solid var(--border-subtle);">
+            <td class="py-1.5 pr-4" style="color:var(--text-secondary);">${r.name}</td>
+            <td class="text-right py-1.5 px-2 font-medium" style="color:var(--text-primary);">${r.campaigns}</td>
+            <td class="text-right py-1.5 px-2" style="color:${r.running ? "var(--green)" : "var(--text-muted)"};">${r.running}</td>
+            <td class="text-right py-1.5 px-2" style="color:${r.completed ? "var(--blue)" : "var(--text-muted)"};">${r.completed}</td>
+            <td class="text-right py-1.5 px-2" style="color:${r.stopped ? "var(--yellow)" : "var(--text-muted)"};">${r.stopped}</td>
+            <td class="text-right py-1.5 px-2 mono" style="color:${r.avgExecs != null ? "var(--text-primary)" : "var(--text-muted)"};">${execDisplay}</td>
+            <td class="text-right py-1.5 px-2 mono" style="color:${r.avgStability != null ? "var(--text-primary)" : "var(--text-muted)"};">${stabDisplay}</td>
+            <td class="text-right py-1.5 px-2 mono" style="color:${r.lastCompleted ? "var(--text-secondary)" : "var(--text-muted)"}; font-size:11px;">${lcDisplay}</td>
+          </tr>`;}).join("");
+
+          for (const th of document.querySelectorAll(".hso-sort")) {
+            const arrow = th.querySelector(".hso-arrow");
+            arrow.textContent = th.dataset.col === hsoSort ? (hsoDesc ? "\u25BC" : "\u25B2") : "";
+          }
+        }
+
+        const filterCounts = { all: rows.length, running: 0, completed: 0, stopped: 0, "no-campaigns": 0 };
+        for (const r of rows) {
+          if (r.campaigns === 0) filterCounts["no-campaigns"]++;
+          if (r.running > 0) filterCounts.running++;
+          if (r.completed > 0) filterCounts.completed++;
+          if (r.stopped > 0) filterCounts.stopped++;
+        }
+        const filtersEl = document.getElementById("hso-filters");
+        const filterDefs = [
+          { key: "all", label: "All" }, { key: "running", label: "Running" },
+          { key: "completed", label: "Completed" }, { key: "stopped", label: "Stopped" },
+          { key: "no-campaigns", label: "None" },
+        ];
+        function hsoRenderFilters() {
+          filtersEl.innerHTML = "";
+          for (const f of filterDefs) {
+            if (filterCounts[f.key] === 0 && f.key !== "all") continue;
+            const btn = document.createElement("button");
+            const active = hsoFilter === f.key;
+            btn.className = `pill ${active ? "active" : ""}`;
+            btn.textContent = `${f.label} ${filterCounts[f.key]}`;
+            btn.addEventListener("click", () => { hsoFilter = f.key; hsoRenderFilters(); hsoRender(); });
+            filtersEl.appendChild(btn);
+          }
+        }
+        hsoRenderFilters();
+
+        for (const th of document.querySelectorAll(".hso-sort")) {
+          th.addEventListener("click", () => {
+            const col = th.dataset.col;
+            if (hsoSort === col) { hsoDesc = !hsoDesc; }
+            else { hsoSort = col; hsoDesc = col !== "name"; }
+            hsoRender();
+          });
+        }
+
+        document.getElementById("hso-search").addEventListener("input", () => hsoRender());
+        hsoRender();
+      }
+
+      // ── All Campaigns: interactive table ────────────────────────────
+      {
+        const statusOrder = { running: 0, completed: 1, stopped: 2 };
+        const acRows = [];
+        for (const [hname, hdata] of Object.entries(h)) {
+          const camps = hdata.campaigns;
+          for (let ci = 0; ci < camps.length; ci++) {
+            const c = camps[ci];
+            // Compute coverage delta vs previous campaign with coverage in same harness
+            let covDelta = null;
+            if (c.coverage_totals) {
+              let prev = null;
+              for (let j = ci - 1; j >= 0; j--) {
+                if (camps[j].coverage_totals) { prev = camps[j].coverage_totals; break; }
+              }
+              if (prev) {
+                const cur = c.coverage_totals;
+                covDelta = {
+                  lines: cur.lines.percent - prev.lines.percent,
+                  branches: cur.branches.percent - prev.branches.percent,
+                  functions: cur.functions.percent - prev.functions.percent,
+                  regions: cur.regions.percent - prev.regions.percent,
+                };
+              }
+            }
+            acRows.push({
+              harness: hname, id: c.id, status: c.status,
+              points: c.stats_count,
+              lastTs: c.last_ts || "",
+              firstTs: c.first_ts || "",
+              covDelta,
+            });
+          }
+        }
+
+        let acFilter = "all";
+        let acCovFilter = false;
+        let acSort = "lastTs";
+        let acDesc = true;
+
+        function acRender() {
+          const q = (document.getElementById("ac-search")?.value || "").toLowerCase();
+          let filtered = acRows;
+          if (acFilter !== "all") filtered = filtered.filter(r => r.status === acFilter);
+          if (q) filtered = filtered.filter(r => r.harness.toLowerCase().includes(q) || r.id.toLowerCase().includes(q));
+          if (acCovFilter) {
+            filtered = filtered.filter(r => r.covDelta && (Math.abs(r.covDelta.lines) > 0.01 || Math.abs(r.covDelta.branches) > 0.01 || Math.abs(r.covDelta.functions) > 0.01 || Math.abs(r.covDelta.regions) > 0.01));
+          }
+
+          const sorted = filtered.slice().sort((a, b) => {
+            let cmp;
+            if (acSort === "harness") cmp = a.harness.localeCompare(b.harness);
+            else if (acSort === "id") cmp = a.id.localeCompare(b.id);
+            else if (acSort === "status") cmp = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+            else cmp = a.lastTs.localeCompare(b.lastTs);
+            if (cmp === 0) cmp = a.lastTs.localeCompare(b.lastTs);
+            return acDesc ? -cmp : cmp;
+          });
+
+          const tbody = document.getElementById("ac-tbody");
+          tbody.innerHTML = sorted.map(r => {
+            const lastDisplay = r.lastTs ? new Date(r.lastTs).toLocaleString() : "-";
+            let covStr = "";
+            if (r.covDelta) {
+              const d = r.covDelta;
+              const fmt = v => (v > 0 ? "+" : "") + v.toFixed(3) + "%";
+              const col = v => v > 0.01 ? "var(--green)" : v < -0.01 ? "var(--red)" : "var(--text-tertiary)";
+              covStr = `<span style="color:${col(d.lines)};">${fmt(d.lines)}</span>/<span style="color:${col(d.branches)};">${fmt(d.branches)}</span>/<span style="color:${col(d.functions)};">${fmt(d.functions)}</span>/<span style="color:${col(d.regions)};">${fmt(d.regions)}</span>`;
+            }
+            return `<tr class="ac-row campaign-row cursor-pointer" style="border-bottom:1px solid var(--border-subtle);" data-harness="${r.harness}" data-cid="${r.id}">
+              <td class="py-1.5 pr-2">${statusDot(r.status)}</td>
+              <td class="py-1.5 pr-4" style="color:var(--text-secondary);">${r.harness}</td>
+              <td class="py-1.5 px-2 mono" style="color:var(--text-tertiary); font-size:11px;">${r.id.substring(0, 16)}</td>
+              <td class="py-1.5 px-2">${statusBadge(r.status)}</td>
+              <td class="text-right py-1.5 px-2 mono" style="font-size:10px; white-space:nowrap;">${covStr || '<span style="color:var(--text-muted);">-</span>'}</td>
+              <td class="text-right py-1.5 px-2 mono" style="color:${r.lastTs ? "var(--text-secondary)" : "var(--text-muted)"}; font-size:11px;">${lastDisplay}</td>
+            </tr>`;
+          }).join("");
+
+          for (const th of document.querySelectorAll(".ac-sort")) {
+            const arrow = th.querySelector(".ac-arrow");
+            arrow.textContent = th.dataset.col === acSort ? (acDesc ? "\u25BC" : "\u25B2") : "";
+          }
+
+          // Wire row clicks
+          for (const row of document.querySelectorAll(".ac-row")) {
+            row.addEventListener("click", () => {
+              currentView = { type: "campaign", harness: row.dataset.harness, id: row.dataset.cid };
+              highlightSidebarItem(row.dataset.harness);
+              renderCampaign(row.dataset.harness, row.dataset.cid);
+              pushURL();
+            });
+          }
+        }
+
+        // Filters
+        const acFilterCounts = { all: acRows.length, running: 0, completed: 0, stopped: 0 };
+        for (const r of acRows) acFilterCounts[r.status] = (acFilterCounts[r.status] || 0) + 1;
+        const acSigDeltaCount = acRows.filter(r => r.covDelta && (Math.abs(r.covDelta.lines) > 0.01 || Math.abs(r.covDelta.branches) > 0.01 || Math.abs(r.covDelta.functions) > 0.01 || Math.abs(r.covDelta.regions) > 0.01)).length;
+        const acFiltersEl = document.getElementById("ac-filters");
+        const acFilterDefs = [
+          { key: "all", label: "All" }, { key: "running", label: "Running" },
+          { key: "completed", label: "Completed" }, { key: "stopped", label: "Stopped" },
+        ];
+        function acRenderFilters() {
+          acFiltersEl.innerHTML = "";
+          for (const f of acFilterDefs) {
+            if (acFilterCounts[f.key] === 0 && f.key !== "all") continue;
+            const btn = document.createElement("button");
+            const active = acFilter === f.key;
+            btn.className = `pill ${active ? "active" : ""}`;
+            btn.textContent = `${f.label} ${acFilterCounts[f.key]}`;
+            btn.addEventListener("click", () => { acFilter = f.key; acRenderFilters(); acRender(); });
+            acFiltersEl.appendChild(btn);
+          }
+          if (acSigDeltaCount > 0) {
+            const sep = document.createElement("span");
+            sep.style.cssText = "width:1px; height:16px; background:var(--border); align-self:center;";
+            acFiltersEl.appendChild(sep);
+            const btn = document.createElement("button");
+            btn.className = `pill ${acCovFilter ? "active" : ""}`;
+            btn.textContent = `\u0394cov ${acSigDeltaCount}`;
+            btn.addEventListener("click", () => { acCovFilter = !acCovFilter; acRenderFilters(); acRender(); });
+            acFiltersEl.appendChild(btn);
+          }
+        }
+        acRenderFilters();
+
+        for (const th of document.querySelectorAll(".ac-sort")) {
+          th.addEventListener("click", () => {
+            const col = th.dataset.col;
+            if (acSort === col) acDesc = !acDesc;
+            else { acSort = col; acDesc = col !== "harness" && col !== "id"; }
+            acRender();
+          });
+        }
+
+        document.getElementById("ac-search").addEventListener("input", () => acRender());
+        acRender();
+      }
+    }
+
+    // ── Render: harness detail ─────────────────────────────────────────
+    async function renderHarness(name) {
+      const gen = ++renderGeneration;
+      const content = document.getElementById("content");
+      destroyCharts();
+      content.innerHTML = '<div class="flex items-center justify-center h-32"><span class="text-xs" style="color:var(--text-tertiary);">Loading harness data...</span></div>';
+
+      let detail;
+      try {
+        detail = await loadHarnessDetail(name);
+      } catch (e) {
+        if (gen !== renderGeneration) return;
+        content.innerHTML = `<div class="p-4 text-xs" style="color:var(--red);">Failed to load harness data: ${e.message}</div>`;
+        return;
+      }
+      if (gen !== renderGeneration) return;
+
+      const campaigns = detail.campaigns;
+
+      const totalPts = campaigns.reduce((s, c) => s + c.stats.length, 0);
+      const withStats = campaigns.filter(c => c.stats.length > 0);
+      const nR = campaigns.filter(c => c.status === "running").length;
+      const nCo = campaigns.filter(c => c.status === "completed").length;
+      const nS = campaigns.filter(c => c.status === "stopped").length;
+      const latCov = [...campaigns].reverse().find(c => c.coverage)?.coverage;
+      const latStatC = [...campaigns].reverse().find(c => c.stats.length > 0);
+      const latStat = latStatC ? latStatC.stats[latStatC.stats.length - 1] : null;
+
+      let html = `
+        <h2 class="text-lg font-semibold mb-0.5" style="color:var(--text-primary);">${name}</h2>
+        <div class="flex items-center gap-3 text-xs mb-5" style="color:var(--text-tertiary);">
+          <span>${campaigns.length} campaign${campaigns.length !== 1 ? "s" : ""}</span>
+          <span style="color:var(--text-muted);">&middot;</span><span>${totalPts} data points</span>
+          ${nR ? `<span style="color:var(--text-muted);">&middot;</span>${statusBadge("running")} <span style="color:var(--text-tertiary);">${nR}</span>` : ""}
+          ${nCo ? `<span style="color:var(--text-muted);">&middot;</span>${statusBadge("completed")} <span style="color:var(--text-tertiary);">${nCo}</span>` : ""}
+          ${nS ? `<span style="color:var(--text-muted);">&middot;</span>${statusBadge("stopped")} <span style="color:var(--text-tertiary);">${nS}</span>` : ""}
+        </div>`;
+
+      if (latStat) {
+        html += `<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          ${statCard("Latest Execs/sec", latStat.execs_per_sec.toLocaleString())}
+          ${statCard("Latest Corpus", latStat.corpus_count.toLocaleString())}
+          ${statCard("Campaigns", campaigns.length.toString(), `${nCo} completed, ${nR} running, ${nS} stopped`)}
+          ${statCard("Data Points", totalPts.toString())}
+        </div>`;
+      }
+
+      const showStability = withStats.length && hasStability(campaigns);
+      if (withStats.length) {
+        html += `<div class="card p-4 mb-4">
+            <span class="section-label">Executions / sec</span>
+            <div style="height:240px" class="mt-2"><canvas id="chart-exec"></canvas></div>
+          </div>
+          <div class="card p-4 mb-4">
+            <span class="section-label">Corpus Count</span>
+            <div style="height:240px" class="mt-2"><canvas id="chart-corpus"></canvas></div>
+          </div>`;
+      }
+
+      if (showStability) {
+        html += `<div class="card p-4 mb-6">
+          <span class="section-label">Stability</span>
+          <div style="height:240px" class="mt-2"><canvas id="chart-stability"></canvas></div>
+        </div>`;
+      }
+
+      const covDS = makeCovDS(campaigns);
+      if (covDS) {
+        html += `<div class="card p-4 mb-6">
+          <span class="section-label">Coverage Over Time</span>
+          <div style="height:260px" class="mt-2"><canvas id="chart-coverage"></canvas></div>
+        </div>`;
+      }
+
+      // Find previous campaign's coverage for delta
+      const covCampaigns = [...campaigns].reverse().filter(c => c.coverage);
+      const prevCov = covCampaigns.length > 1 ? covCampaigns[1].coverage : null;
+      const prevFileMap = {};
+      if (prevCov) for (const f of prevCov.files) prevFileMap[f.filename] = f;
+
+      if (latCov) {
+        const t = latCov.totals;
+
+        html += `<div class="card p-5 mb-6">
+          <span class="section-label">Latest Coverage Snapshot</span>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 mb-5">
+            ${coverageBar("Lines", t.lines)}${coverageBar("Functions", t.functions)}
+            ${coverageBar("Branches", t.branches)}${coverageBar("Regions", t.regions)}
+          </div>`;
+        const cf = latCov.files;
+        const hasChange = !!prevCov;
+        if (cf.length) {
+          html += `<span class="section-label">Covered Files</span>
+            <div class="overflow-auto mt-3" style="max-height:400px;"><table class="w-full text-xs"><thead class="sticky top-0" style="background:var(--bg-elevated);">
+              <tr style="color:var(--text-tertiary); border-bottom:1px solid var(--border);">
+                <th class="text-left py-2 pr-4 font-medium cursor-pointer select-none cft-sort" data-col="file">File <span class="cft-arrow"></span></th>
+                <th class="text-right py-2 px-2 font-medium cursor-pointer select-none cft-sort" data-col="lines">Lines <span class="cft-arrow"></span></th>
+                <th class="text-right py-2 px-2 font-medium cursor-pointer select-none cft-sort" data-col="covered">Covered <span class="cft-arrow"></span></th>
+                <th class="text-right py-2 px-2 font-medium cursor-pointer select-none cft-sort" data-col="percent">% <span class="cft-arrow"></span></th>
+                ${hasChange ? '<th class="text-right py-2 px-2 font-medium cursor-pointer select-none cft-sort" data-col="change">Change <span class="cft-arrow"></span></th>' : ""}
+              </tr></thead><tbody id="cft-tbody"></tbody></table></div>`;
+        }
+        html += `<div id="file-cov-detail" class="mt-4" style="display:none;">
+          <div class="flex items-center justify-between mb-2">
+            <span class="section-label">File Coverage History</span>
+            <span id="file-cov-name" class="mono text-[11px] truncate" style="color:var(--text-secondary); max-width:60%;"></span>
+          </div>
+          <div style="height:240px"><canvas id="chart-file-cov"></canvas></div>
+        </div>`;
+        html += `</div>`;
+      }
+
+      // Build coverage deltas for each campaign
+      const campaignDeltas = campaigns.map((c, i) => {
+        if (!c.coverage) return null;
+        // Find previous campaign with coverage
+        let prev = null;
+        for (let j = i - 1; j >= 0; j--) {
+          if (campaigns[j].coverage) { prev = campaigns[j].coverage.totals; break; }
+        }
+        if (!prev) return null;
+        const cur = c.coverage.totals;
+        return {
+          lines: cur.lines.percent - prev.lines.percent,
+          branches: cur.branches.percent - prev.branches.percent,
+          functions: cur.functions.percent - prev.functions.percent,
+          regions: cur.regions.percent - prev.regions.percent,
+        };
+      });
+
+      const hasCovDeltas = campaignDeltas.some(d => d !== null);
+
+      html += `<div class="card p-5">
+        <span class="section-label">Campaigns</span>
+        <div class="overflow-x-auto mt-3"><table class="w-full text-xs">
+          <thead><tr style="color:var(--text-tertiary); border-bottom:1px solid var(--border);">
+            <th class="text-left py-2 pr-2 font-medium" style="width:20px;"></th>
+            <th class="text-left py-2 pr-4 font-medium">ID</th>
+            <th class="text-left py-2 px-2 font-medium">Status</th>
+            <th class="text-right py-2 px-2 font-medium">Points</th>
+            ${hasCovDeltas ? '<th class="text-right py-2 px-2 font-medium">Lines</th>' : ''}
+            ${hasCovDeltas ? '<th class="text-right py-2 px-2 font-medium">Branches</th>' : ''}
+            ${hasCovDeltas ? '<th class="text-right py-2 px-2 font-medium">Functions</th>' : ''}
+            ${hasCovDeltas ? '<th class="text-right py-2 px-2 font-medium">Regions</th>' : ''}
+            <th class="text-right py-2 pl-2 font-medium">Time Range</th>
+          </tr></thead><tbody>${campaigns.map((c, i) => {
+          const first = c.stats[0], last = c.stats[c.stats.length - 1];
+          const tr = first && last ? `${first.timestamp} &rarr; ${last.timestamp}` : "no data";
+          const d = campaignDeltas[i];
+          function deltaCell(val) {
+            if (d === null) return `<td class="text-right py-1.5 px-2 mono" style="color:var(--text-muted);">-</td>`;
+            const col = val > 0.01 ? "var(--green)" : val < -0.01 ? "var(--red)" : "var(--text-tertiary)";
+            const str = (val > 0 ? "+" : "") + val.toFixed(2) + "%";
+            return `<td class="text-right py-1.5 px-2 mono font-medium" style="color:${col};">${str}</td>`;
+          }
+          return `<tr class="campaign-row cursor-pointer" style="border-bottom:1px solid var(--border-subtle);" data-harness="${name}" data-cid="${c.id}">
+            <td class="py-1.5 pr-2">${statusDot(c.status)}</td>
+            <td class="py-1.5 pr-4"><code class="mono" style="color:var(--text-tertiary); font-size:11px;">${c.id.substring(0, 16)}</code></td>
+            <td class="py-1.5 px-2">${statusBadge(c.status)}</td>
+            <td class="text-right py-1.5 px-2" style="color:var(--text-tertiary);">${c.stats.length}</td>
+            ${hasCovDeltas ? deltaCell(d?.lines) : ''}
+            ${hasCovDeltas ? deltaCell(d?.branches) : ''}
+            ${hasCovDeltas ? deltaCell(d?.functions) : ''}
+            ${hasCovDeltas ? deltaCell(d?.regions) : ''}
+            <td class="text-right py-1.5 pl-2 mono" style="color:var(--text-muted); font-size:10px;">${tr}</td>
+          </tr>`;
+        }).join("")}</tbody></table></div></div>`;
+
+      content.innerHTML = html;
+
+      // Wire campaign row clicks
+      for (const row of document.querySelectorAll(".campaign-row")) {
+        row.addEventListener("click", () => {
+          currentView = { type: "campaign", harness: row.dataset.harness, id: row.dataset.cid };
+          renderCampaign(row.dataset.harness, row.dataset.cid);
+          pushURL();
+        });
+      }
+
+      if (withStats.length) {
+        createLineChart("chart-exec", makeStatsDS(withStats, "execs_per_sec"), "execs/sec");
+        createLineChart("chart-corpus", makeStatsDS(withStats, "corpus_count"), "corpus count");
+      }
+      if (showStability) {
+        const stabDS = makeStabilityDS(campaigns);
+        if (stabDS) createLineChart("chart-stability", stabDS, "stability");
+      }
+      if (covDS) createLineChart("chart-coverage", covDS, "coverage %");
+
+      // Covered files sortable table
+      if (latCov && latCov.files.length) {
+        const hasChange = !!prevCov;
+        let cftSort = "percent";
+        let cftDesc = true;
+
+        const cftRows = latCov.files.map(f => {
+          const prev = prevFileMap[f.filename];
+          const delta = prev ? f.lines.percent - prev.lines.percent : null;
+          return { file: f.filename, short: shortenPath(f.filename), lines: f.lines.count, covered: f.lines.covered, percent: f.lines.percent, change: delta };
+        });
+
+        function cftRender() {
+          const sorted = cftRows.slice().sort((a, b) => {
+            let cmp;
+            if (cftSort === "file") cmp = a.short.localeCompare(b.short);
+            else if (cftSort === "change") {
+              const av = a.change ?? -Infinity, bv = b.change ?? -Infinity;
+              cmp = av - bv;
+            } else cmp = a[cftSort] - b[cftSort];
+            if (cmp === 0) cmp = a.short.localeCompare(b.short);
+            return cftDesc ? -cmp : cmp;
+          });
+
+          document.getElementById("cft-tbody").innerHTML = sorted.map(r => {
+            const deltaStr = r.change !== null ? (r.change > 0 ? "+" : "") + r.change.toFixed(1) + "%" : "";
+            const deltaColor = r.change === null ? "" : r.change > 0 ? "var(--green)" : r.change < 0 ? "var(--red)" : "var(--text-tertiary)";
+            return `<tr class="cov-file-row cursor-pointer" style="border-bottom:1px solid var(--border-subtle);" data-filename="${r.file.replace(/"/g, '&quot;')}">
+              <td class="py-1.5 pr-4 mono truncate max-w-md" style="color:var(--text-secondary);">${r.short}</td>
+              <td class="text-right py-1.5 px-2" style="color:var(--text-tertiary);">${r.lines}</td>
+              <td class="text-right py-1.5 px-2" style="color:var(--green);">${r.covered}</td>
+              <td class="text-right py-1.5 px-2 font-medium" style="color:${covColor(r.percent)};">${r.percent.toFixed(1)}%</td>
+              ${hasChange ? `<td class="text-right py-1.5 px-2 font-medium" style="color:${deltaColor};">${deltaStr || '<span style="color:var(--text-muted);">new</span>'}</td>` : ""}
+            </tr>`;
+          }).join("");
+
+          for (const th of document.querySelectorAll(".cft-sort")) {
+            const arrow = th.querySelector(".cft-arrow");
+            arrow.textContent = th.dataset.col === cftSort ? (cftDesc ? "\u25BC" : "\u25B2") : "";
+          }
+
+          // Wire file row clicks
+          for (const row of document.querySelectorAll(".cov-file-row")) {
+            row.addEventListener("click", () => {
+              showFileCovHistory(campaigns, row.dataset.filename);
+              for (const r of document.querySelectorAll(".cov-file-row")) r.style.background = "";
+              row.style.background = "var(--active-bg)";
+            });
+          }
+        }
+
+        for (const th of document.querySelectorAll(".cft-sort")) {
+          th.addEventListener("click", () => {
+            const col = th.dataset.col;
+            if (cftSort === col) cftDesc = !cftDesc;
+            else { cftSort = col; cftDesc = col !== "file"; }
+            cftRender();
+          });
+        }
+
+        cftRender();
+      }
+    }
+
+    function showFileCovHistory(campaigns, filename) {
+      const detail = document.getElementById("file-cov-detail");
+      if (!detail) return;
+      detail.style.display = "";
+      document.getElementById("file-cov-name").textContent = shortenPath(filename);
+
+      // Destroy previous file coverage chart if it exists
+      const idx = charts.findIndex(c => c.canvas?.id === "chart-file-cov");
+      if (idx !== -1) { charts[idx].destroy(); charts.splice(idx, 1); }
+
+      // Gather this file's coverage across all campaigns with coverage data
+      const pts = [];
+      for (const c of campaigns) {
+        if (!c.coverage || !c.stats.length) continue;
+        const f = c.coverage.files.find(f => f.filename === filename);
+        if (!f) continue;
+        const t = new Date(c.stats[c.stats.length - 1].timestamp);
+        pts.push({ t, lines: f.lines.percent, branches: f.branches.percent, functions: f.functions.percent, regions: f.regions.percent });
+      }
+      pts.sort((a, b) => a.t - b.t);
+
+      if (!pts.length) {
+        detail.style.display = "none";
+        return;
+      }
+
+      const ds = [
+        { label: "Lines %",     data: pts.map(p => ({ x: p.t, y: p.lines })),     borderColor: "#3b82f6", backgroundColor: "#3b82f618", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Branches %",  data: pts.map(p => ({ x: p.t, y: p.branches })),  borderColor: "#f59e0b", backgroundColor: "#f59e0b18", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Functions %", data: pts.map(p => ({ x: p.t, y: p.functions })), borderColor: "#10b981", backgroundColor: "#10b98118", tension: 0, pointRadius: 4, borderWidth: 2 },
+        { label: "Regions %",   data: pts.map(p => ({ x: p.t, y: p.regions })),   borderColor: "#8b5cf6", backgroundColor: "#8b5cf618", tension: 0, pointRadius: 4, borderWidth: 2 },
+      ];
+      createLineChart("chart-file-cov", ds, "coverage %");
+      detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    // ── Render: campaign detail ──────────────────────────────────────────
+    async function renderCampaign(harnessName, campaignId) {
+      const gen = ++renderGeneration;
+      const content = document.getElementById("content");
+      destroyCharts();
+      content.innerHTML = '<div class="flex items-center justify-center h-32"><span class="text-xs" style="color:var(--text-tertiary);">Loading campaign data...</span></div>';
+
+      let detail;
+      try {
+        detail = await loadHarnessDetail(harnessName);
+      } catch (e) {
+        if (gen !== renderGeneration) return;
+        content.innerHTML = `<div class="p-4 text-xs" style="color:var(--red);">Failed to load campaign data: ${e.message}</div>`;
+        return;
+      }
+      if (gen !== renderGeneration) return;
+
+      const campaign = detail.campaigns.find(c => c.id === campaignId);
+      if (!campaign) return;
+
+      const c = campaign;
+      const first = c.stats[0], last = c.stats[c.stats.length - 1];
+      const firstTs = first ? new Date(first.timestamp).toLocaleString() : "-";
+      const lastTs = last ? new Date(last.timestamp).toLocaleString() : "-";
+      const duration = first && last ? formatDuration(new Date(last.timestamp) - new Date(first.timestamp)) : "-";
+      const latStat = last || null;
+      const cov = c.coverage;
+      const cHasStability = c.stats.some(s => s.stability != null);
+      const latStability = latStat && latStat.stability != null ? latStat.stability.toFixed(2) : null;
+
+      let html = `
+        <div class="flex items-center gap-2 mb-4 text-xs" style="color:var(--text-tertiary);">
+          <span class="cursor-pointer hover-link" id="breadcrumb-harness">${harnessName}</span>
+          <span style="color:var(--text-muted);">/</span>
+          <span style="color:var(--text-secondary);">Campaign</span>
+        </div>
+        <div class="flex items-center gap-3 mb-1">
+          <h2 class="text-lg font-semibold mono" style="color:var(--text-primary);">${c.id}</h2>
+          ${statusBadge(c.status)}
+        </div>
+        <p class="text-xs mb-5" style="color:var(--text-tertiary);">${c.stats.length} data points &middot; ${firstTs} &rarr; ${lastTs} &middot; duration ${duration}</p>
+
+        <div class="grid grid-cols-2 md:grid-cols-${cHasStability ? "5" : "4"} gap-3 mb-6">
+          ${statCard("Status", (STATUS_CFG[c.status]||STATUS_CFG.stopped).label)}
+          ${statCard("Data Points", c.stats.length.toString())}
+          ${latStat ? statCard("Latest Execs/sec", latStat.execs_per_sec.toLocaleString()) : statCard("Latest Execs/sec", "-")}
+          ${latStat ? statCard("Latest Corpus", latStat.corpus_count.toLocaleString()) : statCard("Latest Corpus", "-")}
+          ${cHasStability ? statCard("Latest Stability", latStability || "-") : ""}
+        </div>`;
+
+      if (c.stats.length > 0) {
+        html += `<div class="card p-4 mb-4">
+            <span class="section-label">Executions / sec</span>
+            <div style="height:260px" class="mt-2"><canvas id="chart-c-exec"></canvas></div>
+          </div>
+          <div class="card p-4 mb-4">
+            <span class="section-label">Corpus Count</span>
+            <div style="height:260px" class="mt-2"><canvas id="chart-c-corpus"></canvas></div>
+          </div>`;
+      }
+
+      if (cHasStability) {
+        html += `<div class="card p-4 mb-6">
+          <span class="section-label">Stability</span>
+          <div style="height:240px" class="mt-2"><canvas id="chart-c-stability"></canvas></div>
+        </div>`;
+      }
+
+      if (cov) {
+        const t = cov.totals;
+        html += `<div class="card p-5 mb-6">
+          <span class="section-label">Coverage</span>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 mb-5">
+            ${coverageBar("Lines", t.lines)}${coverageBar("Functions", t.functions)}
+            ${coverageBar("Branches", t.branches)}${coverageBar("Regions", t.regions)}
+          </div>`;
+        const cf = cov.files;
+        if (cf.length) {
+          html += `<span class="section-label">Covered Files</span>
+            <div class="overflow-auto mt-3" style="max-height:400px;"><table class="w-full text-xs"><thead class="sticky top-0" style="background:var(--bg-elevated);">
+              <tr style="color:var(--text-tertiary); border-bottom:1px solid var(--border);">
+                <th class="text-left py-2 pr-4 font-medium cursor-pointer select-none ccft-sort" data-col="file">File <span class="ccft-arrow"></span></th>
+                <th class="text-right py-2 px-2 font-medium cursor-pointer select-none ccft-sort" data-col="lines">Lines <span class="ccft-arrow"></span></th>
+                <th class="text-right py-2 px-2 font-medium cursor-pointer select-none ccft-sort" data-col="covered">Covered <span class="ccft-arrow"></span></th>
+                <th class="text-right py-2 px-2 font-medium cursor-pointer select-none ccft-sort" data-col="percent">% <span class="ccft-arrow"></span></th>
+              </tr></thead><tbody id="ccft-tbody"></tbody></table></div>`;
+        }
+        html += `</div>`;
+      }
+
+      // Raw stats table
+      if (c.stats.length > 0) {
+        html += `<div class="card p-5">
+          <span class="section-label">Stats History</span>
+          <div class="overflow-auto mt-3" style="max-height:400px;"><table class="w-full text-xs">
+            <thead class="sticky top-0" style="background:var(--bg-elevated);"><tr style="color:var(--text-tertiary); border-bottom:1px solid var(--border);">
+              <th class="text-left py-2 pr-4 font-medium cursor-pointer select-none sh-sort" data-col="timestamp">Timestamp <span class="sh-arrow"></span></th>
+              <th class="text-right py-2 px-2 font-medium cursor-pointer select-none sh-sort" data-col="execs_per_sec">Execs/sec <span class="sh-arrow"></span></th>
+              <th class="text-right py-2 px-2 font-medium cursor-pointer select-none sh-sort" data-col="corpus_count">Corpus <span class="sh-arrow"></span></th>
+              ${cHasStability ? '<th class="text-right py-2 px-2 font-medium cursor-pointer select-none sh-sort" data-col="stability">Stability <span class="sh-arrow"></span></th>' : ""}
+            </tr></thead><tbody id="sh-tbody"></tbody></table></div>
+        </div>`;
+      }
+
+      content.innerHTML = html;
+
+      // Breadcrumb back to harness
+      document.getElementById("breadcrumb-harness").addEventListener("click", () => {
+        currentView = { type: "harness", name: harnessName };
+        renderHarness(harnessName);
+        pushURL();
+      });
+
+      // Charts for this single campaign
+      if (c.stats.length > 0) {
+        const execData = c.stats.map(s => ({ x: new Date(s.timestamp), y: s.execs_per_sec }));
+        const corpusData = c.stats.map(s => ({ x: new Date(s.timestamp), y: s.corpus_count }));
+        createLineChart("chart-c-exec", [{ label: "execs/sec", data: execData, borderColor: "#3b82f6", backgroundColor: "#3b82f618", fill: true, tension: 0, pointRadius: 3, borderWidth: 1.5 }], "execs/sec");
+        createLineChart("chart-c-corpus", [{ label: "corpus count", data: corpusData, borderColor: "#10b981", backgroundColor: "#10b98118", fill: true, tension: 0, pointRadius: 3, borderWidth: 1.5 }], "corpus count");
+      }
+      if (cHasStability) {
+        const stabData = c.stats.filter(s => s.stability != null).map(s => ({ x: new Date(s.timestamp), y: s.stability }));
+        if (stabData.length) createLineChart("chart-c-stability", [{ label: "stability", data: stabData, borderColor: "#f59e0b", backgroundColor: "#f59e0b18", fill: true, tension: 0, pointRadius: 3, borderWidth: 1.5 }], "stability");
+      }
+
+      // Stats History sortable table
+      if (c.stats.length > 0) {
+        let shSort = "timestamp";
+        let shDesc = true;
+
+        const shRows = c.stats.map(s => ({
+          timestamp: s.timestamp,
+          execs_per_sec: s.execs_per_sec,
+          corpus_count: s.corpus_count,
+          stability: s.stability != null ? s.stability : null,
+        }));
+
+        function shRender() {
+          const sorted = shRows.slice().sort((a, b) => {
+            let cmp;
+            if (shSort === "timestamp") cmp = a.timestamp.localeCompare(b.timestamp);
+            else {
+              const av = a[shSort] != null ? a[shSort] : -Infinity;
+              const bv = b[shSort] != null ? b[shSort] : -Infinity;
+              cmp = av - bv;
+            }
+            if (cmp === 0) cmp = a.timestamp.localeCompare(b.timestamp);
+            return shDesc ? -cmp : cmp;
+          });
+
+          document.getElementById("sh-tbody").innerHTML = sorted.map(s =>
+            `<tr style="border-bottom:1px solid var(--border-subtle);">
+              <td class="py-1.5 pr-4 mono" style="color:var(--text-secondary); font-size:11px;">${s.timestamp}</td>
+              <td class="text-right py-1.5 px-2 mono" style="color:var(--text-primary);">${s.execs_per_sec.toLocaleString()}</td>
+              <td class="text-right py-1.5 px-2 mono" style="color:var(--text-primary);">${s.corpus_count.toLocaleString()}</td>
+              ${cHasStability ? `<td class="text-right py-1.5 px-2 mono" style="color:${s.stability != null ? "var(--text-primary)" : "var(--text-muted)"};">${s.stability != null ? s.stability.toFixed(2) : "-"}</td>` : ""}
+            </tr>`
+          ).join("");
+
+          for (const th of document.querySelectorAll(".sh-sort")) {
+            const arrow = th.querySelector(".sh-arrow");
+            arrow.textContent = th.dataset.col === shSort ? (shDesc ? "\u25BC" : "\u25B2") : "";
+          }
+        }
+
+        for (const th of document.querySelectorAll(".sh-sort")) {
+          th.addEventListener("click", () => {
+            const col = th.dataset.col;
+            if (shSort === col) shDesc = !shDesc;
+            else { shSort = col; shDesc = col === "timestamp"; }
+            shRender();
+          });
+        }
+
+        shRender();
+      }
+
+      // Campaign covered files sortable table
+      if (cov && cov.files.length) {
+        let ccftSort = "percent";
+        let ccftDesc = true;
+
+        const ccftRows = cov.files.map(f => ({
+          file: f.filename, short: shortenPath(f.filename),
+          lines: f.lines.count, covered: f.lines.covered, percent: f.lines.percent,
+        }));
+
+        function ccftRender() {
+          const sorted = ccftRows.slice().sort((a, b) => {
+            let cmp;
+            if (ccftSort === "file") cmp = a.short.localeCompare(b.short);
+            else cmp = a[ccftSort] - b[ccftSort];
+            if (cmp === 0) cmp = a.short.localeCompare(b.short);
+            return ccftDesc ? -cmp : cmp;
+          });
+
+          document.getElementById("ccft-tbody").innerHTML = sorted.map(r =>
+            `<tr style="border-bottom:1px solid var(--border-subtle);">
+              <td class="py-1.5 pr-4 mono truncate max-w-md" style="color:var(--text-secondary);">${r.short}</td>
+              <td class="text-right py-1.5 px-2" style="color:var(--text-tertiary);">${r.lines}</td>
+              <td class="text-right py-1.5 px-2" style="color:var(--green);">${r.covered}</td>
+              <td class="text-right py-1.5 px-2 font-medium" style="color:${covColor(r.percent)};">${r.percent.toFixed(1)}%</td>
+            </tr>`
+          ).join("");
+
+          for (const th of document.querySelectorAll(".ccft-sort")) {
+            const arrow = th.querySelector(".ccft-arrow");
+            arrow.textContent = th.dataset.col === ccftSort ? (ccftDesc ? "\u25BC" : "\u25B2") : "";
+          }
+        }
+
+        for (const th of document.querySelectorAll(".ccft-sort")) {
+          th.addEventListener("click", () => {
+            const col = th.dataset.col;
+            if (ccftSort === col) ccftDesc = !ccftDesc;
+            else { ccftSort = col; ccftDesc = col !== "file"; }
+            ccftRender();
+          });
+        }
+
+        ccftRender();
+      }
+    }
+
+    function formatDuration(ms) {
+      const s = Math.floor(ms / 1000);
+      if (s < 60) return `${s}s`;
+      const m = Math.floor(s / 60);
+      if (m < 60) return `${m}m ${s % 60}s`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h ${m % 60}m`;
+      const d = Math.floor(h / 24);
+      return `${d}d ${h % 24}h`;
+    }
+
+    // ── Mobile sidebar toggle ────────────────────────────────────────
+    {
+      const aside = document.querySelector("aside");
+      const toggle = document.getElementById("sidebar-toggle");
+      const overlay = document.getElementById("sidebar-overlay");
+      function openSidebar() { aside.classList.add("open"); overlay.classList.add("open"); }
+      function closeSidebar() { aside.classList.remove("open"); overlay.classList.remove("open"); }
+      toggle.addEventListener("click", () => aside.classList.contains("open") ? closeSidebar() : openSidebar());
+      overlay.addEventListener("click", closeSidebar);
+      aside.addEventListener("click", (e) => { if (e.target.closest(".harness-item")) closeSidebar(); });
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────
+    async function init() {
+      try {
+        const raw = await (await fetch("data.json")).json();
+        projects = raw.projects;
+        scrapedAt = raw.scraped_at;
+
+        document.getElementById("sidebar-title").addEventListener("click", () => {
+          currentView = { type: "summary" };
+          renderProjectTabs();
+          renderSidebar();
+          renderSummary();
+          pushURL();
+        });
+
+        // Restore state from URL or show default
+        navigateFromHash();
+
+        // Handle browser back/forward
+        window.addEventListener("popstate", () => navigateFromHash());
+      } catch (err) {
+        document.getElementById("harness-list").innerHTML =
+          `<div class="p-4 text-xs" style="color:var(--red);">Failed to load data.json: ${err.message}</div>`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
