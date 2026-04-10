@@ -364,10 +364,11 @@
     function shortenPath(p) { return p.replace(/^\/workdir\/[^/]+\//, ""); }
     function covColor(pct) { return pct > 50 ? "var(--green)" : pct > 20 ? "var(--yellow)" : "var(--red)"; }
 
-    function statCard(label, value, sub) {
+    function statCard(label, value, sub, cls) {
+      const vc = cls || "text-base font-semibold";
       return `<div class="card p-3">
         <div class="section-label">${label}</div>
-        <div class="text-base font-semibold mt-1" style="color:var(--text-primary);">${value}</div>
+        <div class="${vc} mt-1" style="color:var(--text-primary);">${value}</div>
         ${sub ? `<div class="text-[11px] mt-0.5" style="color:var(--text-tertiary);">${sub}</div>` : ""}
       </div>`;
     }
@@ -861,6 +862,7 @@
                   <th class="text-left py-2 pr-4 font-medium cursor-pointer select-none ac-sort" data-col="harness">Harness <span class="ac-arrow"></span></th>
                   <th class="text-left py-2 px-2 font-medium cursor-pointer select-none ac-sort" data-col="id">Campaign <span class="ac-arrow"></span></th>
                   <th class="text-left py-2 px-2 font-medium cursor-pointer select-none ac-sort" data-col="status">Status <span class="ac-arrow"></span></th>
+                  <th class="text-left py-2 px-2 font-medium cursor-pointer select-none ac-sort" data-col="commit">Commit <span class="ac-arrow"></span></th>
                   <th class="text-right py-2 px-2 font-medium">&Delta; Lines/Branches/Functions/Regions</th>
                   <th class="text-right py-2 px-2 font-medium cursor-pointer select-none ac-sort" data-col="lastTs">Last Active <span class="ac-arrow"></span></th>
                 </tr>
@@ -1073,6 +1075,7 @@
               lastTs: c.last_ts || "",
               firstTs: c.first_ts || "",
               covDelta,
+              commit: c.commit_hash || "",
             });
           }
         }
@@ -1096,6 +1099,7 @@
             if (acSort === "harness") cmp = a.harness.localeCompare(b.harness);
             else if (acSort === "id") cmp = a.id.localeCompare(b.id);
             else if (acSort === "status") cmp = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+            else if (acSort === "commit") cmp = a.commit.localeCompare(b.commit);
             else cmp = a.lastTs.localeCompare(b.lastTs);
             if (cmp === 0) cmp = a.lastTs.localeCompare(b.lastTs);
             return acDesc ? -cmp : cmp;
@@ -1111,11 +1115,13 @@
               const col = v => v > 0.01 ? "var(--green)" : v < -0.01 ? "var(--red)" : "var(--text-tertiary)";
               covStr = `<span style="color:${col(d.lines)};">${fmt(d.lines)}</span>/<span style="color:${col(d.branches)};">${fmt(d.branches)}</span>/<span style="color:${col(d.functions)};">${fmt(d.functions)}</span>/<span style="color:${col(d.regions)};">${fmt(d.regions)}</span>`;
             }
+            const commitDisplay = r.commit ? `<code class="mono" style="font-size:10px;">${r.commit.substring(0, 8)}</code>` : '<span style="color:var(--text-muted);">-</span>';
             return `<tr class="ac-row campaign-row cursor-pointer" style="border-bottom:1px solid var(--border-subtle);" data-harness="${r.harness}" data-cid="${r.id}">
               <td class="py-1.5 pr-2">${statusDot(r.status)}</td>
               <td class="py-1.5 pr-4" style="color:var(--text-secondary);">${r.harness}</td>
               <td class="py-1.5 px-2 mono" style="color:var(--text-tertiary); font-size:11px;">${r.id.substring(0, 16)}</td>
               <td class="py-1.5 px-2">${statusBadge(r.status)}</td>
+              <td class="py-1.5 px-2" style="color:var(--text-tertiary);">${commitDisplay}</td>
               <td class="text-right py-1.5 px-2 mono" style="font-size:10px; white-space:nowrap;">${covStr || '<span style="color:var(--text-muted);">-</span>'}</td>
               <td class="text-right py-1.5 px-2 mono" style="color:${r.lastTs ? "var(--text-secondary)" : "var(--text-muted)"}; font-size:11px;">${lastDisplay}</td>
             </tr>`;
@@ -1316,6 +1322,7 @@
 
       const hasCovDeltas = campaignDeltas.some(d => d !== null);
 
+      const hasAnyCommit = campaigns.some(c => c.startup_params?.commit_hash);
       html += `<div class="card p-5">
         <span class="section-label">Campaigns</span>
         <div class="overflow-x-auto mt-3"><table class="w-full text-xs">
@@ -1323,6 +1330,7 @@
             <th class="text-left py-2 pr-2 font-medium" style="width:20px;"></th>
             <th class="text-left py-2 pr-4 font-medium">ID</th>
             <th class="text-left py-2 px-2 font-medium">Status</th>
+            ${hasAnyCommit ? '<th class="text-left py-2 px-2 font-medium">Commit</th>' : ''}
             <th class="text-right py-2 px-2 font-medium">Points</th>
             ${hasCovDeltas ? '<th class="text-right py-2 px-2 font-medium">Lines</th>' : ''}
             ${hasCovDeltas ? '<th class="text-right py-2 px-2 font-medium">Branches</th>' : ''}
@@ -1333,6 +1341,8 @@
           const first = c.stats[0], last = c.stats[c.stats.length - 1];
           const tr = first && last ? `${first.timestamp} &rarr; ${last.timestamp}` : "no data";
           const d = campaignDeltas[i];
+          const cCommit = c.startup_params?.commit_hash;
+          const cCommitCell = hasAnyCommit ? `<td class="py-1.5 px-2" style="color:var(--text-tertiary);">${cCommit ? `<code class="mono" style="font-size:10px;">${cCommit.substring(0, 8)}</code>` : '<span style="color:var(--text-muted);">-</span>'}</td>` : '';
           function deltaCell(val) {
             if (d === null) return `<td class="text-right py-1.5 px-2 mono" style="color:var(--text-muted);">-</td>`;
             const col = val > 0.01 ? "var(--green)" : val < -0.01 ? "var(--red)" : "var(--text-tertiary)";
@@ -1343,6 +1353,7 @@
             <td class="py-1.5 pr-2">${statusDot(c.status)}</td>
             <td class="py-1.5 pr-4"><code class="mono" style="color:var(--text-tertiary); font-size:11px;">${c.id.substring(0, 16)}</code></td>
             <td class="py-1.5 px-2">${statusBadge(c.status)}</td>
+            ${cCommitCell}
             <td class="text-right py-1.5 px-2" style="color:var(--text-tertiary);">${c.stats.length}</td>
             ${hasCovDeltas ? deltaCell(d?.lines) : ''}
             ${hasCovDeltas ? deltaCell(d?.branches) : ''}
@@ -1503,6 +1514,12 @@
       const cHasStability = c.stats.some(s => s.stability != null);
       const latStability = latStat && latStat.stability != null ? latStat.stability.toFixed(2) : null;
 
+      const sp = c.startup_params;
+      const resolved = resolveHarness(harnessName);
+      const projectName = resolved ? resolved.project : null;
+      const GITHUB_REPOS = { bitcoin: "bitcoin/bitcoin" };
+      const ghRepo = projectName ? GITHUB_REPOS[projectName] : null;
+
       let html = `
         <div class="flex items-center gap-2 mb-4 text-xs" style="color:var(--text-tertiary);">
           <span class="cursor-pointer hover-link" id="breadcrumb-harness">${harnessName}</span>
@@ -1515,12 +1532,19 @@
         </div>
         <p class="text-xs mb-5" style="color:var(--text-tertiary);">${c.stats.length} data points &middot; ${firstTs} &rarr; ${lastTs} &middot; duration ${duration}</p>
 
-        <div class="grid grid-cols-2 md:grid-cols-${cHasStability ? "5" : "4"} gap-3 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
           ${statCard("Status", (STATUS_CFG[c.status]||STATUS_CFG.stopped).label)}
           ${statCard("Data Points", c.stats.length.toString())}
           ${latStat ? statCard("Latest Execs/sec", latStat.execs_per_sec.toLocaleString()) : statCard("Latest Execs/sec", "-")}
           ${latStat ? statCard("Latest Corpus", latStat.corpus_count.toLocaleString()) : statCard("Latest Corpus", "-")}
           ${cHasStability ? statCard("Latest Stability", latStability || "-") : ""}
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+          ${sp ? statCard("CPUs", `${sp.num_cpus ?? "-"}`) : ""}
+          ${sp && sp.duration_secs != null ? (() => { const cpuH = Math.round(sp.duration_secs / 3600); const wallSecs = sp.num_cpus ? Math.round(sp.duration_secs / sp.num_cpus) : null; let sub = null; if (wallSecs) { const wH = Math.floor(wallSecs / 3600); const wM = Math.floor((wallSecs % 3600) / 60); sub = wH ? `${wH}h ${wM}m` : `${wM}m`; } return statCard("Duration (CPU hrs)", cpuH.toLocaleString(), sub); })() : (sp ? statCard("Duration", "-") : "")}
+          ${sp && sp.engines ? statCard("Engines", sp.engines.join(" · "), "", "text-sm font-medium leading-relaxed") : (sp ? statCard("Engines", "-") : "")}
+          ${sp && sp.sanitizers ? statCard("Sanitizers", sp.sanitizers.join(" · "), "", "text-sm font-medium leading-relaxed") : (sp ? statCard("Sanitizers", "-") : "")}
+          ${sp && sp.commit_hash ? (() => { const short = sp.commit_hash.substring(0, 12); const val = ghRepo ? `<a href="https://github.com/${ghRepo}/tree/${sp.commit_hash}" target="_blank" rel="noopener" class="hover-link" style="color:var(--text-primary);text-decoration:none;" onmouseenter="this.style.textDecoration='underline';this.style.color='var(--accent)'" onmouseleave="this.style.textDecoration='none';this.style.color='var(--text-primary)'">${short}</a>` : short; return statCard("Commit", val); })() : (sp ? statCard("Commit", "-") : "")}
         </div>`;
 
       if (c.stats.length > 0) {

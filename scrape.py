@@ -135,8 +135,8 @@ def campaign_status(campaign_data):
 
 
 def scrape_campaign(campaign_url, cid):
-    """Scrape a single campaign's stats and coverage."""
-    cdata = {"id": cid, "stats": [], "coverage": None}
+    """Scrape a single campaign's stats, coverage, and startup params."""
+    cdata = {"id": cid, "stats": [], "coverage": None, "startup_params": None}
     try:
         cdata["stats"] = parse_stats(fetch(f"{campaign_url}stats.txt"))
     except URLError:
@@ -145,6 +145,11 @@ def scrape_campaign(campaign_url, cid):
         cov_json = json.loads(fetch(f"{campaign_url}coverage-summary.json"))
         cdata["coverage"] = parse_coverage(cov_json)
     except (URLError, json.JSONDecodeError, KeyError, IndexError):
+        pass
+    try:
+        cdata["startup_params"] = json.loads(
+            fetch(f"{campaign_url}startup_params.json"))
+    except (URLError, json.JSONDecodeError):
         pass
     cdata["status"] = campaign_status(cdata)
     return cdata
@@ -302,6 +307,7 @@ def main():
                     stab_vals = [s["stability"] for s in c["stats"] if "stability" in s and s["stability"] is not None]
                     if stab_vals:
                         avg_stability = sum(stab_vals) / len(stab_vals)
+                sp = c.get("startup_params")
                 summary = {
                     "id": c["id"],
                     "status": c["status"],
@@ -314,6 +320,9 @@ def main():
                                         if c["coverage"] else None),
                     "avg_execs_per_sec": avg_execs,
                     "avg_stability": avg_stability,
+                    "commit_hash": sp.get("commit_hash") if sp else None,
+                    "num_cpus": sp.get("num_cpus") if sp else None,
+                    "duration_secs": sp.get("duration_secs") if sp else None,
                 }
                 summary_campaigns.append(summary)
             index_harnesses[hname] = {"campaigns": summary_campaigns}
